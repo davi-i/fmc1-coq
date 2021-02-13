@@ -126,11 +126,13 @@ Proof.
   intros Hlem P Q Hn_nP_or_nQ. split.
   - destruct (Hlem P) as [HP | HnP].
     * assumption.
-    * assert(HnP_or_nQ: ~P \/ ~Q) by (left; assumption).
+    * assert(HnP_or_nQ: ~P \/ ~Q).
+        { left. assumption. }
       apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
   - destruct (Hlem Q) as [HQ | HnQ].
     * assumption.
-    * assert(HnP_or_nQ: ~P \/ ~Q) by (right; assumption).
+    * assert(HnP_or_nQ: ~P \/ ~Q).
+        { right. assumption. }
       apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
 Qed.
 
@@ -140,9 +142,13 @@ Qed.
 Theorem de_morgan1_with_lem : lem -> forall (P Q : Prop), ~(P \/ Q) -> (~P /\ ~Q).
 Proof.
   intros Hlem P Q Hn_P_or_Q. destruct (Hlem P) as [HP | HnP].
-  - assert(HP_or_Q: P \/ Q) by (left; assumption). contradiction.
+  - assert(HP_or_Q: P \/ Q).
+      { left. assumption. }
+    contradiction.
   - destruct (Hlem Q) as [HQ | HnQ].
-    * assert(HP_or_Q: P \/ Q) by (right; assumption). contradiction.
+    * assert(HP_or_Q: P \/ Q).
+        { right. assumption. }
+      contradiction.
     * split.
       + assumption.
       + assumption.
@@ -160,7 +166,9 @@ Theorem de_morgan3_with_lem : lem -> forall (P Q : Prop), ~(P /\ Q) -> (~P \/ ~Q
 Proof.
   intros Hlem P Q Hn_P_and_Q. destruct (Hlem P) as [HP | HnP].
   - destruct (Hlem Q) as [HQ | HnQ].
-    * assert(HP_or_Q: P /\ Q) by (split; assumption; assumption). contradiction.
+    * assert(HP_or_Q: P /\ Q).
+        { split. assumption. assumption. }
+      contradiction.
     * right. assumption.
   - left. assumption.
 Qed.
