@@ -221,54 +221,7 @@ Proof.
       destruct (H HSy'_lte_Sx') as [HSx'_lte_y' | HSx'_eq_Sy'].
       * destruct HSx'_lte_Sy' as (a, HSx'_plus_a).
         destruct HSy'_lte_Sx' as (b, HSy'_plus_b).
-
-
-
-
-
-
-
-
-
-
-
-
-induction x as [| x' HI].
-  - intros HO_leq_y__and__y_leq_O.
-    destruct HO_leq_y__and__y_leq_O as (HO_leq_y, Hy_leq_O).
-    destruct Hy_leq_O as (k, Hy_plus_k).
-    destruct k as [| k'].
-    + simpl in Hy_plus_k.
-      rewrite <- Hy_plus_k. reflexivity.
-    + simpl in Hy_plus_k. inversion Hy_plus_k.
-  - intros HSx'_leq_y__and__y_leq_Sx'.
-    destruct HSx'_leq_y__and__y_leq_Sx' as (HSx'_leq_y, Hy_leq_Sx').
-    destruct (n_lte_Sm y x') as [Hy_leq_Sx'__imp__y_leq_x'_or_y_eq_Sx'].
-    destruct (Hy_leq_Sx'__imp__y_leq_x'_or_y_eq_Sx' Hy_leq_Sx') as [Hy_leq_x' | Hy_eq_Sx'].
-    + destruct Hy_leq_x' as (a, Hx'_plus_a).
-      destruct HSx'_leq_y as (b, HSx'_plus_b).
-      rewrite <- HSx'_plus_b in Hx'_plus_a.
-      rewrite <- (sum_associativity (S x') b a) in Hx'_plus_a.
-      assert (HSx'_lte_x': S x' <= x').
-        { exists (b + a). assumption. }
-      destruct HSx'_lte_x' as (k, Hx'_plus_k).
-      destruct k as [| k'] eqn:Ek.
-      * 
-    + rewrite <- Hy_eq_Sx'. reflexivity. 
-    destruct HSx'_leq_y as (a, HSx'_plus_a).
-    destruct Hy_leq_Sx' as (b, Hy_plus_b).
-    destruct b as [| b'] eqn:Eb.
-    + simpl in Hy_plus_b. rewrite -> Hy_plus_b. reflexivity.
-    + simpl in Hy_plus_b. (** inversion Hy_plus_b as [Hy_plus_b']. **)
-      destruct a as [| a'] eqn:Ea.
-      * simpl in HSx'_plus_a. assumption.
-      * simpl in HSx'_plus_a. 
-    rewrite <- HSx'_plus_a in Hy_plus_b.
-  
-  destruct Hx_leq_y as (a, Hx_plus_a).
-  destruct Hy_leq_x as (b, Hy_plus_b).
-  rewrite <- Hx_plus_a.
-Qed.
+Abort.
 
 Theorem lte_transitivity : forall (x y z : Nat), x <= y /\ y <= z -> x <= z.
 Proof.
