@@ -163,15 +163,20 @@ Definition lte (n m : Nat) : Prop := exists (k : Nat), n + k = m.
 Notation "n <= m" := (lte n m).
 
 Definition lt (n m : Nat) : Prop := (n <= m) /\ (n <> m).
-Notation "n < m" := (gt n m).
+Notation "n < m" := (lt n m).
 
+Definition gte (n m : Nat) : Prop := m <= n.
+Notation "n >= m" := (gte n m).
+
+Definition gt (n m : Nat) : Prop := m < n.
+Notation "n > m" := (gt n m).
 
 Theorem n_lte_Sm : forall (n m : Nat), n <= (S m) <-> (n <= m) \/ (n = (S m)). 
 Proof.
   intros n m. split.
   - intros Hn_lte_Sm. destruct Hn_lte_Sm as (k, Hn_plus_k).
     destruct k as [| k'] eqn:Ek.
-    + right. simpl in Hn_plus_k. assumption.
+    + right. simpl in Hn_plus_k. exact Hn_plus_k.
     + left. simpl in Hn_plus_k. exists k'.
       inversion Hn_plus_k as [Hn_plus_k'].
       reflexivity.
@@ -190,84 +195,49 @@ Proof.
   intros x. exists O. simpl. reflexivity.
 Qed.
 
+Lemma succ_lte_O : forall (x : Nat), ~(S x <= O).
+Proof.
+  intros x HSx_lte_O.
+  destruct HSx_lte_O as (k, HSx_plus_k).
+  rewrite -> (sum_commutativity (S x) k) in HSx_plus_k.
+  simpl in HSx_plus_k. inversion HSx_plus_k.
+Qed.
+
+Lemma lte_succ : forall (x y : Nat), S x <= S y -> x <= y.
+Proof.
+  intros x y HSx_lqe_Sy.
+  destruct HSx_lqe_Sy as (k, HSx_plus_k).
+  rewrite -> (sum_commutativity (S x) k) in HSx_plus_k.
+  simpl in HSx_plus_k.
+  inversion HSx_plus_k as [Hk_plus_x].
+  rewrite -> (sum_commutativity k x).
+  exists k.
+  reflexivity.
+Qed.
 
 Theorem lte_antisymmetry : forall (x y : Nat), x <= y /\ y <= x -> x = y.
 Proof.
-  (** intros x y Hx_leq_y__and__y_leq_x.
-  destruct Hx_leq_y__and__y_leq_x as (Hx_leq_y, Hy_leq_x).
-  destruct Hx_leq_y as (a, Hx_plus_a).
-  destruct Hy_leq_x as (b, Hy_plus_b).
-  destruct a as [| a'] eqn:Ea.
-  - simpl in Hx_plus_a. assumption.
-  - destruct b as [| b'] eqn:Eb.
-    + simpl in Hy_plus_b. rewrite -> Hy_plus_b. reflexivity.
-    + simpl in Hx_plus_a. simpl in Hy_plus_b. **)
-
-  intros x y Hx_lte_y__and__y_lte_x.
-  induction x as [| x' HIx'].
-  - destruct Hx_lte_y__and__y_lte_x as (HO_lte_y, Hy_lte_O).
-    destruct Hy_lte_O as (k, Hy_plus_k).
-    destruct y as [| y'].
+  intros x.
+  induction x as [| x' HI].
+  - intros y HO_lte_y__and__y_lte_O. destruct y as [| y'] eqn:Ey.
     + reflexivity.
-    + rewrite -> (sum_commutativity (S y') k) in Hy_plus_k.
-      simpl in Hy_plus_k. inversion Hy_plus_k.
-  - destruct y as [| y'].
-    + destruct Hx_lte_y__and__y_lte_x as (HSx'_lte_O, HO_lte_Sx').
-      destruct HSx'_lte_O as (k, HSx'_plus_k).
-      rewrite -> (sum_commutativity (S x') k) in HSx'_plus_k.
-      simpl in HSx'_plus_k. inversion HSx'_plus_k.
-    + destruct Hx_lte_y__and__y_lte_x as (HSx'_lte_Sy', HSy'_lte_Sx').
-      destruct (n_lte_Sm (S y') x') as [].
-      destruct (H HSy'_lte_Sx') as [HSx'_lte_y' | HSx'_eq_Sy'].
-      * destruct HSx'_lte_Sy' as (a, HSx'_plus_a).
-        destruct HSy'_lte_Sx' as (b, HSy'_plus_b).
-
-
-
-
-
-
-
-
-
-
-
-
-induction x as [| x' HI].
-  - intros HO_leq_y__and__y_leq_O.
-    destruct HO_leq_y__and__y_leq_O as (HO_leq_y, Hy_leq_O).
-    destruct Hy_leq_O as (k, Hy_plus_k).
-    destruct k as [| k'].
-    + simpl in Hy_plus_k.
-      rewrite <- Hy_plus_k. reflexivity.
-    + simpl in Hy_plus_k. inversion Hy_plus_k.
-  - intros HSx'_leq_y__and__y_leq_Sx'.
-    destruct HSx'_leq_y__and__y_leq_Sx' as (HSx'_leq_y, Hy_leq_Sx').
-    destruct (n_lte_Sm y x') as [Hy_leq_Sx'__imp__y_leq_x'_or_y_eq_Sx'].
-    destruct (Hy_leq_Sx'__imp__y_leq_x'_or_y_eq_Sx' Hy_leq_Sx') as [Hy_leq_x' | Hy_eq_Sx'].
-    + destruct Hy_leq_x' as (a, Hx'_plus_a).
-      destruct HSx'_leq_y as (b, HSx'_plus_b).
-      rewrite <- HSx'_plus_b in Hx'_plus_a.
-      rewrite <- (sum_associativity (S x') b a) in Hx'_plus_a.
-      assert (HSx'_lte_x': S x' <= x').
-        { exists (b + a). assumption. }
-      destruct HSx'_lte_x' as (k, Hx'_plus_k).
-      destruct k as [| k'] eqn:Ek.
-      * 
-    + rewrite <- Hy_eq_Sx'. reflexivity. 
-    destruct HSx'_leq_y as (a, HSx'_plus_a).
-    destruct Hy_leq_Sx' as (b, Hy_plus_b).
-    destruct b as [| b'] eqn:Eb.
-    + simpl in Hy_plus_b. rewrite -> Hy_plus_b. reflexivity.
-    + simpl in Hy_plus_b. (** inversion Hy_plus_b as [Hy_plus_b']. **)
-      destruct a as [| a'] eqn:Ea.
-      * simpl in HSx'_plus_a. assumption.
-      * simpl in HSx'_plus_a. 
-    rewrite <- HSx'_plus_a in Hy_plus_b.
-  
-  destruct Hx_leq_y as (a, Hx_plus_a).
-  destruct Hy_leq_x as (b, Hy_plus_b).
-  rewrite <- Hx_plus_a.
+    + destruct HO_lte_y__and__y_lte_O as (HO_lte_Sy', HSy'_lte_O).
+      apply (succ_lte_O y') in HSy'_lte_O as Hbot.
+      contradiction.
+  - intros y HSx'_lte_y__and__y_lte_Sx'.
+    destruct HSx'_lte_y__and__y_lte_Sx' as (HSx'_lte_y, Hy_lte_Sx').
+    destruct y as [| y'] eqn:Ey.
+    + apply (succ_lte_O x') in HSx'_lte_y as Hbot.
+      contradiction.
+    + apply (lte_succ x' y') in HSx'_lte_y as Hx'_lte_y'.
+      apply (lte_succ y' x') in Hy_lte_Sx' as Hy'_lte_x'.
+      assert (Hx'_leq_y'__and__y'_leq_x': x' <= y' /\ y' <= x').
+        { split.
+          - exact Hx'_lte_y'.
+          - exact Hy'_lte_x'. }
+      apply (HI y') in Hx'_leq_y'__and__y'_leq_x' as Hx'_eq_y'.
+      rewrite <- Hx'_eq_y'.
+      reflexivity.
 Qed.
 
 Theorem lte_transitivity : forall (x y z : Nat), x <= y /\ y <= z -> x <= z.
@@ -282,16 +252,48 @@ Proof.
   assumption.
 Qed.
 
-Theorem lte_total_with_lem : lem -> forall (x y : Nat), x <= y \/ y <= x.
+Lemma O_leq_x : forall (x : Nat), O <= x.
 Proof.
-  intros Hlem x y.
-  destruct (Hlem (x <= y)) as [Hx_lte_y | Hn_x_lte_y].
-  - left. assumption.
-  - 
-Abort.
+  intros x. exists x.
+  rewrite -> (sum_commutativity O x).
+  simpl. reflexivity.
+Qed.
 
-Example exercicio_x4_25 : forall (n : Nat), (n >= S (S (S (S (S O))))) -> ((n ^ S(S O)) < ((S (S O)) ^ n)).
+Lemma leq_succ_inverse : forall (x y : Nat), x <= y -> S x <= S y.
+Proof.
+  intros x y Hx_leq_y.
+  destruct Hx_leq_y as (k, Hy_plus_k).
+  exists k.
+  rewrite -> (sum_commutativity (S x) k). 
+  simpl.
+  rewrite -> (sum_commutativity k x). 
+  rewrite -> Hy_plus_k.
+  reflexivity.
+Qed.
 
+Theorem lte_total : forall (x y : Nat), x <= y \/ y <= x.
+Proof.
+  intros x.
+  induction x as [| x' HI].
+  - intros y. left. exact (O_leq_x y).
+  - intros y.
+    destruct y as [| y'].
+    + right. exact (O_leq_x (S x')).
+    + destruct (HI y') as [Hx'_leq_y' | Hy'_leq_x'].
+      * left. exact (leq_succ_inverse x' y' Hx'_leq_y').
+      * right. exact (leq_succ_inverse y' x' Hy'_leq_x').
+Qed.
+
+(** Problema Π4.1 **)
+
+Fixpoint tetracao (n m : Nat) : Nat :=
+  match m with
+  | O    => S O
+  | S m' => n ^ (tetracao n m')
+  end.
+
+Notation "n ♢ m" := (tetracao n m) 
+                    (at level 20).
 
 
 
