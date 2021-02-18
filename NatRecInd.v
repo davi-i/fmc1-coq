@@ -207,18 +207,18 @@ Lemma lte_succ : forall (x y : Nat), S x <= S y -> x <= y.
 Proof.
   intros x y HSx_lqe_Sy.
   destruct HSx_lqe_Sy as (k, HSx_plus_k).
+  exists k.
+  rewrite -> (sum_commutativity x k).
   rewrite -> (sum_commutativity (S x) k) in HSx_plus_k.
   simpl in HSx_plus_k.
   inversion HSx_plus_k as [Hk_plus_x].
-  rewrite -> (sum_commutativity k x).
-  exists k.
   reflexivity.
 Qed.
 
 Theorem lte_antisymmetry : forall (x y : Nat), x <= y /\ y <= x -> x = y.
 Proof.
   intros x.
-  induction x as [| x' HI].
+  induction x as [| x' HI ].
   - intros y HO_lte_y__and__y_lte_O. destruct y as [| y'] eqn:Ey.
     + reflexivity.
     + destruct HO_lte_y__and__y_lte_O as (HO_lte_Sy', HSy'_lte_O).
@@ -246,10 +246,10 @@ Proof.
   destruct Hx_lte_y__and__y_lte_z as (Hx_lte_y, Hy_lte_z).
   destruct Hx_lte_y as (a, Hx_sum_a).
   destruct Hy_lte_z as (b, Hy_sum_b).
-  rewrite <- Hx_sum_a in Hy_sum_b.
-  rewrite <- (sum_associativity x a b) in Hy_sum_b.
   exists (a + b).
-  assumption.
+  rewrite -> (sum_associativity x a b).
+  rewrite -> Hx_sum_a.
+  exact Hy_sum_b.
 Qed.
 
 Lemma O_leq_x : forall (x : Nat), O <= x.

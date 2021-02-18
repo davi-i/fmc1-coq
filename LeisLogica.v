@@ -234,12 +234,11 @@ Qed.
 
 (** 8. As leis de De Morgan para ∃,∀ **)
 
-(** Theorem neg_forall1 : lem -> forall (A: Type)(a : A)(phi : A -> Prop), ~(forall ( x: A ), phi x) -> (exists (x : A), ~phi x).
+Theorem neg_forall1 :
+  lem -> forall (A: Type)(a : A)(phi : A -> Prop), ~(forall ( x: A ), phi x) -> (exists (x : A), ~phi x).
 Proof.
-  intros Hlem A a phi Hnfx_px. destruct (Hlem (phi a)) as [Hpa | Hnpa].
-  - assert (Hfx_
-  - assumption.
-Qed. **)
+  intros Hlem A a phi Hnfx_px.
+Abort.
 
 Theorem neg_forall2 : forall (A : Type)(phi : A -> Prop), (exists (x : A), ~phi x) -> ~(forall ( x: A ), phi x).
 Proof.
@@ -271,14 +270,16 @@ Proof.
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
 Qed.
 
-(* Theorem interdefinabilidade_existe_paratodo2_with_lem : lem -> forall (A : Type)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
+Theorem interdefinabilidade_existe_paratodo2_with_lem : lem -> forall (A : Type)(a : A)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
 Proof.
-  intros Hlem phi Hnfx_npx.
-  assert(Hfx_npx: forall (x : A), ~phi x).
-  - intros a Hpa. 
-destruct Hex_px as (a, Hpa).
-  apply (Hfx_npx a) in Hpa as Hfalse. assumption.
-Qed. *)
+  intros Hlem A a phi Hnfx_npx.
+  destruct (Hlem (forall x, phi x)) as [Hfx_px | Hnfx_px].
+  - exists a. exact (Hfx_px a).
+  - destruct (Hlem (exists x, ~(phi x))) as [Hex_npx | Hnex_npx].
+    + admit.
+    +
+  exists a.
+Abort.
 
 Theorem interdefinabilidade_existe_paratodo3 : forall (A : Type)(phi : A -> Prop), (forall ( x: A ), phi x) -> ~(exists (x : A), ~phi x).
 Proof.
@@ -298,14 +299,65 @@ Qed.
 
 (** 10. Proposições de distributividade de quantificadores **)
 
-Theorem distirbutividade_quantificadores1 : 
-  forall (A : Type)(phi psi : A -> Prop), (exists (x : A), phi x /\ psi x) -> (exists (x : A), phi x) /\ (exists (x : A), psi x).
+Theorem distirbutividade_quantificadores1 : forall (A : Type)(phi psi : A -> Prop),
+  (exists (x : A), phi x /\ psi x) -> (exists (x : A), phi x) /\ (exists (x : A), psi x).
 Proof.
   intros A phi psi Hex__phx_and_psx. destruct Hex__phx_and_psx as (a, Hpha_and_psa).
   destruct Hpha_and_psa as (Hpha, Hpsa).
   split.
   - exists a. assumption.
   - exists a. assumption.
+Qed.
+
+Theorem distirbutividade_quantificadores3 : forall (A : Type)(phi psi : A -> Prop),
+  (exists (x : A), phi x \/ psi x) -> (exists (x : A), phi x) \/ (exists (x : A), psi x).
+Proof.
+  intros A phi psi Hex_phx_or_psx.
+  destruct Hex_phx_or_psx as (a, Hpha_or_psa).
+  destruct Hpha_or_psa as [Hpha | Hpsa].
+  - left. exists a. exact Hpha.
+  - right. exists a. exact Hpsa.
+Qed.
+
+Theorem distirbutividade_quantificadores4 : forall (A : Type)(phi psi : A -> Prop),
+  (exists (x : A), phi x) \/ (exists (x : A), psi x) -> (exists (x : A), phi x \/ psi x).
+Proof.
+  intros A phi psi Hex_phx__or__ex_psx.
+  destruct Hex_phx__or__ex_psx as [Hex_phx | Hex_psx].
+  - destruct Hex_phx as (a, Hpha).
+    exists a. left. exact Hpha.
+  - destruct Hex_psx as (a, Hpsa).
+    exists a. right. exact Hpsa.
+Qed.
+
+Theorem distirbutividade_quantificadores5 : forall (A : Type)(phi psi : A -> Prop),
+  (forall (x : A), phi x /\ psi x) -> (forall (x : A), phi x) /\ (forall (x : A), psi x).
+Proof.
+  intros A phi psi Hfx_phx_and_psix.
+  split.
+  - intros a. destruct (Hfx_phx_and_psix a) as (Hpha, Hpsa).
+    exact Hpha.
+  - intros a. destruct (Hfx_phx_and_psix a) as (Hpha, Hpsa).
+    exact Hpsa.
+Qed.
+
+Theorem distirbutividade_quantificadores6 : forall (A : Type)(phi psi : A -> Prop),
+  (forall (x : A), phi x) /\ (forall (x : A), psi x) -> (forall (x : A), phi x /\ psi x).
+Proof.
+  intros A phi psi Hfx_phx__and__fx_psx x.
+  destruct Hfx_phx__and__fx_psx as (Hfx_phx, Hfx_psx).
+  split.
+  - exact (Hfx_phx x).
+  - exact (Hfx_psx x).
+Qed.
+
+Theorem distirbutividade_quantificadores8 : forall (A : Type)(phi psi : A -> Prop),
+  (forall (x : A), phi x) \/ (forall (x : A), psi x) -> (forall (x : A), phi x \/ psi x).
+Proof.
+  intros A phi psi Hfx_phx__or__fx_psx x.
+  destruct Hfx_phx__or__fx_psx as [Hfx_phx | Hfx_psx].
+  - left. exact (Hfx_phx x).
+  - right. exact (Hfx_psx x).
 Qed.
 
 (** 1. (Cont) Proposições de contraposição **)
