@@ -103,7 +103,7 @@ Proof.
   - simpl. induction m as [| m' HIm'].
     + simpl. reflexivity.
     + simpl. rewrite -> HIm'. simpl. reflexivity.
-  - simpl. rewrite <- HIn'.  
+  - simpl. rewrite <- HIn'.
     rewrite <- (mult_Sn_m n' m).
     reflexivity.
 Qed.
@@ -294,6 +294,71 @@ Fixpoint tetracao (n m : Nat) : Nat :=
 
 Notation "n ♢ m" := (tetracao n m) 
                     (at level 20).
+
+
+(** Somátório e produtório **)
+
+(* Não sei se tem como fazer isso automaticamente, mas fiz pelo menos pra alguns *)
+Notation "0" := O.
+Notation "1" := (S O).
+Notation "2" := (S(S O)).
+Notation "3" := (S(S(S O))).
+Notation "4" := (S(S(S(S O)))).
+Notation "5" := (S(S(S(S(S O))))).
+Notation "6" := (S(S(S(S(S(S O)))))).
+Notation "7" := (S(S(S(S(S(S(S O))))))).
+Notation "8" := (S(S(S(S(S(S(S(S O)))))))).
+Notation "9" := (S(S(S(S(S(S(S(S(S O))))))))).
+
+
+
+Fixpoint summation (n : Nat) (x : Nat -> Nat) : Nat :=
+
+  match n with
+  | O    => O
+  | S n' => (x n) + (summation n' x)
+  end.
+
+Notation "∑( n )[ x  ]" := (summation n x).
+
+Example x4_26 :
+  forall (n : Nat), (∑(n)[fun i => 4 * i^3]) = n^2 * (n + 1)^2.
+Proof.
+  intros n. induction n as [| n' HI].
+  - simpl. reflexivity.
+  - unfold summation. fold summation.
+    rewrite -> HI.
+    rewrite -> (mult_commutativity 4 (S n'^3)).
+    replace (S n' ^ 3) with ((n' + 1)^2 * S n').
+    rewrite -> (mult_commutativity (n'^2) ((n' + 1)^2)).
+    rewrite -> (mult_associativity ((n' + 1) ^ 2) (S n') 4).
+    rewrite <- (distributivity ((n' + 1) ^ 2) (S n' * 4) (n' ^ 2)).
+    replace (S n' * 4 + n' ^ 2) with (S (S n') ^ 2).
+    simpl. reflexivity.
+    rewrite -> (sum_commutativity (S n' * 4) (n' ^ 2)).
+    simpl.
+    rewrite <- (mult_identity n').
+    rewrite -> (sum_commutativity 0 n').
+    rewrite -> (mult_commutativity (S (S n')) n').
+    rewrite -> (sum_commutativity (S (S (n' * S (S n') + n'))) n').
+    rewrite -> (sum_commutativity (n' * S (S n')) n').
+    rewrite -> (sum_commutativity (S (n' + 0)) n').
+    rewrite -> (sum_commutativity (S (n' + S (n' + 0))) n').
+    rewrite -> (sum_commutativity (S (n' + S (n' + S (n' + 0)))) n').
+    simpl.
+    rewrite -> (sum_associativity (n' * n') n' (n' + (n' + n'))).
+    rewrite -> (sum_commutativity (n' * n') n').
+    rewrite <- (sum_associativity n' (n' * n') (n' + (n' + n'))).
+    rewrite -> (sum_associativity (n' * n') n' (n' + n')).
+    rewrite -> (sum_commutativity (n' * n') n').
+    rewrite <- (sum_associativity n' (n' * n') (n' + n')).
+    rewrite -> (sum_associativity (n' * n') n' n').
+    rewrite -> (sum_commutativity (n' * n') n').
+    reflexivity.
+    simpl. reflexivity.
+Qed.
+
+
 
 
 
