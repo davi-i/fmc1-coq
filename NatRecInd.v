@@ -284,56 +284,21 @@ Proof.
       * right. exact (leq_succ_inverse y' x' Hy'_leq_x').
 Qed.
 
+Lemma x_plus_Sy : forall (x y : Nat), x + S y <> x.
+Proof.
+  intros x y.
+  induction x as [| x' HI].
+  - simpl. discriminate.
+  - intros HSx'_plus_Sy.
+    rewrite -> (sum_commutativity (S x') (S y)) in HSx'_plus_Sy.
+    simpl in HSx'_plus_Sy.
+    inversion HSx'_plus_Sy as [HSy_plus_x'].
+    rewrite -> (sum_commutativity (S y) x') in HSy_plus_x'.
+    apply HI in HSy_plus_x' as Hbot.
+    exact Hbot.
+Qed.
+
 Theorem lt_or_eq : forall (x y : Nat), x <= y -> x < y \/ x = y.
-(* Proof.
-  intros x. induction x as [| x' HI].
-  - intros y HO_leq_y.
-    destruct HO_leq_y as (k, HO_plus_k).
-    destruct k as [| k'].
-    + right. rewrite <- HO_plus_k. simpl. reflexivity.
-    + left. rewrite <- HO_plus_k.
-      rewrite -> (sum_commutativity O (S k')).
-      simpl. split.
-      * exists (S k').
-        rewrite -> (sum_commutativity O (S k')).
-        simpl. reflexivity.
-      * discriminate.
-  - intros y HSx'_lte_y.
-    destruct HSx'_lte_y as (k, HSx'_plus_k).
-    destruct k as [| k'].
-    + right.
-      rewrite <- HSx'_plus_k.
-      simpl. reflexivity.
-    + left. split.
-      * rewrite <- HSx'_plus_k.
-        exists (S k').
-        reflexivity.
-      * intros HSx'_eq_y.
-        assert (HSx'_leq_y: S x' <= y).
-          { rewrite <- HSx'_plus_k. exists (S k'). reflexivity. }
-        
-Qed. *)
-(* Proof.
-  intros x y. induction y as [| y' HI].
-  - intros Hx_lte_O.
-    destruct Hx_lte_O as (k, Hx_plus_k).
-    destruct k as [| k'] eqn:Ek.
-    + right. rewrite <- Hx_plus_k. simpl.
-      reflexivity.
-    + simpl in Hx_plus_k.
-      inversion Hx_plus_k.
-  - intros Hx_lte_Sy'.
-    destruct Hx_lte_Sy' as (k, Hx_plus_k).
-    destruct k as [| k'] eqn:Ek.
-    + right. rewrite <- Hx_plus_k.
-      simpl. reflexivity.
-    + simpl in Hx_plus_k.
-      inversion Hx_plus_k as [Hx_plus_k'].
-      assert (Hx_lte_y': x <= y').
-        { rewrite <- Hx_plus_k'. exists k'. reflexivity. }
-      destruct (HI Hx_lte_y') as [Hx_lt_y'| x_eq_y'].
-      * left. split.
-Qed. *)
 Proof.
   intros x y Hx_lte_y.
   destruct Hx_lte_y as (k, Hx_plus_k).
@@ -342,11 +307,26 @@ Proof.
     rewrite <- Hx_plus_k.
     simpl. reflexivity.
   - left. intros Hy_lte_x.
-    destruct Hy_lte_x as (n, Hy_plus_n).
-    rewrite <- Hy_plus_n in Hx_plus_k.
-    rewrite <- (sum_associativity y n (S k')) in Hx_plus_k.
-    replace (n + S k') with O in Hx_plus_k.
-Abort.
+    assert (Hx_eq_y : x = y).
+      { apply (lte_antisymmetry x y).
+        split.
+        - rewrite <- Hx_plus_k.
+          exists (S k').
+          reflexivity.
+        - exact Hy_lte_x. }
+    rewrite -> Hx_eq_y in Hx_plus_k.
+    apply (x_plus_Sy y k') in Hx_plus_k as Hbot.
+    exact Hbot.
+Qed.
+
+Theorem gt_or_eq : forall (x y : Nat), x >= y -> x > y \/ x = y.
+Proof.
+  intros x y Hx_gte_y.
+  apply (lt_or_eq y x) in Hx_gte_y as Hy_lt_x__or__y_eq_x.
+  destruct Hy_lt_x__or__y_eq_x as [Hy_lt_x | Hy_eq_x].
+  - left. unfold lt in Hy_lt_x. exact Hy_lt_x.
+  - right. rewrite <- Hy_eq_x. reflexivity.
+Qed.
 
 (** Problema Π4.1 **)
 
