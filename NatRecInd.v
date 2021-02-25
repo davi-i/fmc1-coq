@@ -591,3 +591,26 @@ Proof.
       reflexivity.
 Qed.
 
+Theorem inducao_duas_bases : forall (phi : nat -> Prop),
+  ((phi 0) /\ (phi 1)) /\ (forall (k : nat), (phi k) /\ (phi (S k)) -> (phi (S(S k))))
+  -> forall (n : nat), (phi n).
+Proof.
+  intros phi Hind.
+  destruct Hind as (Hbase, Hstep).
+  assert (Hpn_and_pSn: forall n : nat, (phi n) /\ (phi (S n))).
+    { induction n as [| n' HI].
+      - exact Hbase.
+      - apply (Hstep n') in HI as HpSSn'.
+        destruct HI as (Hpn', HpSn').
+        split.
+        + exact HpSn'.
+        + exact HpSSn'. }
+  intros n.
+  destruct (Hpn_and_pSn n) as (Hpn, HpSn).
+  exact Hpn.
+Qed.
+
+
+
+
+
