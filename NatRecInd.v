@@ -516,37 +516,78 @@ Proof.
 Abort.
 
 Theorem indution_starting_in_b :
-  forall (phi : nat -> Prop)(b : nat), b <> 0 ->
+  forall (b : nat)(phi : nat -> Prop),
     (phi b) /\ (forall k : nat, k >= b -> ((phi k) -> (phi (S k))))
     -> forall (n : nat), (n >= b -> (phi n)).
 Proof.
-  intros phi b Hb_neq_0 Hind.
+  intros b phi Hind.
   destruct Hind as (Hbase, Hstep).
   induction n as [| n' HI].
   - intros H0_geq_b.
-    assert (Hb_leq_0__and__0_leq_b: b <= 0 /\ 0 <= b).
-      { split.
+    assert (Hb_eq_0: b = 0).
+      { apply (leq_antisymmetry b 0). split.
         - exact H0_geq_b.
         - exact (O_leq_x b). }
-    apply (leq_antisymmetry b 0) in Hb_leq_0__and__0_leq_b as Hb_eq_0.
-    apply Hb_neq_0 in Hb_eq_0 as Hbot.
-    contradiction.
+    rewrite <- Hb_eq_0.
+    exact Hbase.
   - intros HSn'_geq_b.
     destruct (n_leq_Sm b n' HSn'_geq_b) as [Hb_leq_n' | Hb_eq_Sn'].
     + apply HI in Hb_leq_n' as Hpn'.
-      apply (Hstep n') in Hb_leq_n' as HpSn'.
+      apply (Hstep n' Hb_leq_n') in Hpn' as HpSn'.
       exact HpSn'.
-      exact Hpn'.
     + rewrite <- Hb_eq_Sn'.
       exact Hbase.
 Qed.
 
-Example x4_31 : forall (n : nat), n >= 8 -> exists (a b : nat), n = 3 * a + 5 * b.
+Lemma x4_31_lemma1 : forall (a b : nat), a >= 8 -> a = ∑(b)[fun _ => 3] -> 3 <= b.
 Proof.
-  intros n Hn_geq_8.
-  assert (H8_neq_0: 8 <> 0).
-    { discriminate. }
-  apply (indution_starting_in_b (fun i => i = 3 * a + 5 * b)
+  intros a b Ha_gte_8 Ha_eq_sum_b_3.
+  destruct Ha_gte_8 as (k, H8_plus_k).
+  rewrite -> sum_commutativity in H8_plus_k.
+  simpl in H8_plus_k.
+  rewrite -> Ha_eq_sum_b_3 in H8_plus_k.
+  destruct b as [| b'].
+  - simpl in H8_plus_k. discriminate.
+  - destruct b' as [| b''].
+    + simpl in H8_plus_k. discriminate.
+    + destruct b'' as [| b'''].
+      * simpl in H8_plus_k. discriminate.
+      * exists b'''.
+        rewrite -> sum_commutativity.
+        simpl. reflexivity.
+Qed.
 
 
+Example x4_31 : forall (n : nat), n >= 8 -> exists (a b : nat), n = ∑(a)[fun _ => 3] + ∑(b)[fun _ => 5].
+Proof.
+  apply (indution_starting_in_b 8).
+  split.
+  - exists 1. exists 1.
+    simpl. reflexivity.
+  - intros k Hk_gte_8 Heab.
+    destruct Heab as (x, Heb).
+    destruct Heb as (y, Hk_eq).
+    destruct y as [| y'].
+    + simpl in Hk_eq.
+      destruct (x4_31_lemma1 k x Hk_gte_8 Hk_eq) as (x', H3_plus_k).
+      exists x'. exists 2.
+      simpl.
+      rewrite -> Hk_eq.
+      rewrite <- H3_plus_k.
+      rewrite -> (sum_commutativity 3 x').
+      simpl.
+      repeat rewrite -> (sum_commutativity 3 _). 
+      simpl.
+      reflexivity.
+    + exists (S(S x)).
+      exists y'.
+      rewrite -> sum_commutativity.
+      rewrite -> Hk_eq.
+      simpl.
+      repeat rewrite -> (sum_commutativity 5 _).
+      repeat rewrite -> (sum_commutativity 3 _).
+      simpl.
+      rewrite -> sum_commutativity.
+      reflexivity.
+Qed.
 
