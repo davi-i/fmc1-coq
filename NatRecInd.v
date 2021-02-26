@@ -120,14 +120,20 @@ Qed.
 
 (** Identidade da multiplicação **)
 
-Theorem mult_identity : forall (n : nat), (S O) * n = n.
+Theorem mult_identity1 : forall (n : nat), n * (S O) = n.
 Proof.
   intros n.
-  rewrite -> (mult_commutativity (S O) n).
   simpl.
   rewrite -> (sum_commutativity O n).
   simpl.
   reflexivity.
+Qed.
+
+Theorem mult_identity : forall (n : nat), (S O) * n = n.
+Proof.
+  intros n.
+  rewrite -> (mult_commutativity (S O) n).
+  exact (mult_identity1 n).
 Qed.
 
 
@@ -201,8 +207,8 @@ Qed.
 
 Theorem n_leq_Sm_inverse : forall (n m : nat), (n <= m) \/ (n = (S m)) -> n <= (S m).
 Proof.
-  intros n m Hn_leq_m__or__n_eq_Sm.
-  destruct Hn_leq_m__or__n_eq_Sm as [Hn_leq_m | Hn_eq_Sm].
+  intros n m Hn_leq_m__or__n_eq_inverse_Sm.
+  destruct Hn_leq_m__or__n_eq_inverse_Sm as [Hn_leq_m | Hn_eq_inverse_Sm].
   - destruct Hn_leq_m as (k, Hn_plus_k).
     exists (S k). simpl.
     rewrite -> Hn_plus_k.
@@ -256,8 +262,8 @@ Proof.
         { split.
           - exact Hx'_leq_y'.
           - exact Hy'_leq_x'. }
-      apply (HI y') in Hx'_leq_y'__and__y'_leq_x' as Hx'_eq_y'.
-      rewrite <- Hx'_eq_y'.
+      apply (HI y') in Hx'_leq_y'__and__y'_leq_x' as Hx'_eq_inverse_y'.
+      rewrite <- Hx'_eq_inverse_y'.
       reflexivity.
 Qed.
 
@@ -319,7 +325,7 @@ Proof.
     exact Hbot.
 Qed.
 
-Theorem lt_or_eq : forall (x y : nat), x <= y -> x < y \/ x = y.
+Theorem lt_or_eq_inverse : forall (x y : nat), x <= y -> x < y \/ x = y.
 Proof.
   intros x y Hx_leq_y.
   destruct Hx_leq_y as (k, Hx_plus_k).
@@ -328,25 +334,25 @@ Proof.
     rewrite <- Hx_plus_k.
     simpl. reflexivity.
   - left. intros Hy_leq_x.
-    assert (Hx_eq_y : x = y).
+    assert (Hx_eq_inverse_y : x = y).
       { apply (leq_antisymmetry x y).
         split.
         - rewrite <- Hx_plus_k.
           exists (S k').
           reflexivity.
         - exact Hy_leq_x. }
-    rewrite -> Hx_eq_y in Hx_plus_k.
+    rewrite -> Hx_eq_inverse_y in Hx_plus_k.
     apply (x_plus_Sy y k') in Hx_plus_k as Hbot.
     exact Hbot.
 Qed.
 
-Theorem gt_or_eq : forall (x y : nat), x >= y -> x > y \/ x = y.
+Theorem gt_or_eq_inverse : forall (x y : nat), x >= y -> x > y \/ x = y.
 Proof.
   intros x y Hx_geq_y.
-  apply (lt_or_eq y x) in Hx_geq_y as Hy_lt_x__or__y_eq_x.
-  destruct Hy_lt_x__or__y_eq_x as [Hy_lt_x | Hy_eq_x].
+  apply (lt_or_eq_inverse y x) in Hx_geq_y as Hy_lt_x__or__y_eq_inverse_x.
+  destruct Hy_lt_x__or__y_eq_inverse_x as [Hy_lt_x | Hy_eq_inverse_x].
   - left. unfold lt in Hy_lt_x. exact Hy_lt_x.
-  - right. rewrite <- Hy_eq_x. reflexivity.
+  - right. rewrite <- Hy_eq_inverse_x. reflexivity.
 Qed.
 
 (** Problema Π4.1 **)
@@ -419,7 +425,14 @@ Proof.
     exact Ha_eq_0.
 Qed.
 
-Theorem sum_eq : forall (a b k : nat), k + a = k + b -> a = b.
+Theorem sum_eq : forall (a b k : nat), a = b -> k + a = k + b.
+Proof.
+  intros a b k Ha_eq_inverse_b.
+  rewrite -> Ha_eq_inverse_b.
+  reflexivity.
+Qed.
+
+Theorem sum_eq_inverse : forall (a b k : nat), k + a = k + b -> a = b.
 Proof.
   intros a b. induction k as [| k' HI].
   - intro H0_plus_a.
@@ -430,47 +443,105 @@ Proof.
     simpl in HSk'_plus_a.
     inversion HSk'_plus_a as [Ha_plus_k'].
     repeat rewrite -> (sum_commutativity _ k') in Ha_plus_k'.
-    apply HI in Ha_plus_k' as Ha_eq_b.
-    exact Ha_eq_b.
+    apply HI in Ha_plus_k' as Ha_eq_inverse_b.
+    exact Ha_eq_inverse_b.
 Qed.
 
-Theorem sum_eq_inverse : forall (a b k : nat), a = b -> k + a = k + b.
+Theorem sum_leq : forall (a b k : nat), a <= b -> k + a <= k + b.
 Proof.
-  intros a b k Ha_eq_b.
-  rewrite -> Ha_eq_b.
+  intros a b k Ha_leq_b.
+  destruct Ha_leq_b as (c, Ha_plus_c).
+  exists c.
+  rewrite <- sum_associativity.
+  exact (sum_eq _ _ _ Ha_plus_c).
+Qed.
+
+Theorem sum_leq_inverse : forall (a b k : nat), k + a <= k + b -> a <= b.
+Proof.
+  intros a b k Hk_a_leq_k_b.
+  destruct Hk_a_leq_k_b as (c, Hk_a_c).
+  exists c.
+  rewrite <- sum_associativity in Hk_a_c.
+  exact (sum_eq_inverse _ _ _ Hk_a_c).
+Qed.
+
+Theorem sum_geq : forall (a b k : nat), a >= b -> k + a >= k + b.
+Proof.
+  intros a b k.
+  exact (sum_leq b a k).
+Qed.
+
+Theorem sum_geq_inverse : forall (a b k : nat), k + a >= k + b -> a >= b.
+Proof.
+  intros a b k.
+  exact (sum_leq_inverse b a k).
+Qed.
+
+Theorem sum_lt : forall (a b k : nat), a < b -> k + a < k + b.
+Proof.
+  intros a b k Hlt Hlte.
+  apply sum_leq_inverse in Hlte.
+  apply Hlt in Hlte as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem sum_lt_inverse : forall (a b k : nat), k + a < k + b -> a < b.
+Proof.
+  intros a b k Hlt Hlte.
+  apply (sum_leq b a k) in Hlte.
+  apply Hlt in Hlte as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem sum_gt : forall (a b k : nat), a > b -> k + a > k + b.
+Proof.
+  intros a b k.
+  exact (sum_lt b a k).
+Qed.
+
+Theorem sum_gt_inverse : forall (a b k : nat), k + a > k + b -> a > b.
+Proof.
+  intros a b k.
+  exact (sum_lt_inverse b a k).
+Qed.
+
+Theorem mult_eq : forall (a b k : nat), a = b -> k * a = k * b.
+Proof.
+  intros a b k Ha_eq_inverse_b.
+  rewrite -> Ha_eq_inverse_b.
   reflexivity.
 Qed.
 
-Theorem mult_eq : forall (a b k : nat), (S k) * a = (S k) * b -> a = b.
+Theorem mult_eq_inverse : forall (a b k : nat), (S k) * a = (S k) * b -> a = b.
 Proof.
   induction a as [| a' HI].
-  - intros b k HSk0_eq_Skb.
-    simpl in HSk0_eq_Skb.
+  - intros b k HSk0_eq_inverse_Skb.
+    simpl in HSk0_eq_inverse_Skb.
     destruct b as [| b'].
     + reflexivity.
-    + simpl in HSk0_eq_Skb.
+    + simpl in HSk0_eq_inverse_Skb.
       discriminate.
-  - intros b k HSkSa'_eq_Skb.
+  - intros b k HSkSa'_eq_inverse_Skb.
     destruct b as [| b'].
-    + simpl in HSkSa'_eq_Skb.
+    + simpl in HSkSa'_eq_inverse_Skb.
       discriminate.
-    + simpl in HSkSa'_eq_Skb.
-      inversion HSkSa'_eq_Skb as [HSka'_plus_k].
+    + simpl in HSkSa'_eq_inverse_Skb.
+      inversion HSkSa'_eq_inverse_Skb as [HSka'_plus_k].
       repeat rewrite -> (sum_commutativity _ k) in HSka'_plus_k.
-      apply sum_eq in HSka'_plus_k as HSka'_eq_Skb'.
-      apply HI in HSka'_eq_Skb' as Ha'_eq_b.
-      rewrite -> Ha'_eq_b.
+      apply sum_eq_inverse in HSka'_plus_k as HSka'_eq_inverse_Skb'.
+      apply HI in HSka'_eq_inverse_Skb' as Ha'_eq_inverse_b.
+      rewrite -> Ha'_eq_inverse_b.
       reflexivity.
 Qed.
 
-Theorem mult_eq_inverse : forall (a b k : nat), a = b -> k * a = k * b.
+Theorem exp_eq : forall (a b k : nat), a = b -> a^k = b^k.
 Proof.
-  intros a b k Ha_eq_b.
-  rewrite -> Ha_eq_b.
+  intros a b k Ha_eq_inverse_b.
+  rewrite -> Ha_eq_inverse_b.
   reflexivity.
 Qed.
 
-Theorem exp_eq : forall (a b k : nat), a^(S k) = b^(S k) -> a = b.
+Theorem exp_eq_inverse : forall (a b k : nat), a^(S k) = b^(S k) -> a = b.
 Proof.
   intro a. induction b as [| b'].
   - intros k Ha_exp_Sk.
@@ -490,13 +561,6 @@ Proof.
       * 
     simpl in Ha_exp_Sk.
 Abort.
-
-Theorem exp_eq_inverse : forall (a b k : nat), a = b -> a^k = b^k.
-Proof.
-  intros a b k Ha_eq_b.
-  rewrite -> Ha_eq_b.
-  reflexivity.
-Qed.
 
 Theorem square_of_sum : forall (a b : nat), (a + b)^2 = a^2 + 2 * (a * b) + b^2.
 Proof.
@@ -567,7 +631,7 @@ Proof.
     rewrite -> (mult_commutativity _ (S n' ^ 2)).
     rewrite -> mult_associativity.
     rewrite <- distributivity.
-    apply mult_eq_inverse.
+    apply mult_eq.
     replace (S n' * 4) with ((n' + 1) * 4) by reflexivity.
     rewrite -> mult_commutativity.
     rewrite -> distributivity.
@@ -577,7 +641,7 @@ Proof.
     rewrite -> mult_associativity.
     rewrite <- square_of_sum.
     rewrite -> sum_commutativity.
-    apply exp_eq_inverse.
+    apply exp_eq.
     simpl.
     reflexivity.
 Qed.
@@ -633,21 +697,21 @@ Proof.
     rewrite <- Hb_eq_0.
     exact Hbase.
   - intros HSn'_geq_b.
-    destruct (n_leq_Sm b n' HSn'_geq_b) as [Hb_leq_n' | Hb_eq_Sn'].
+    destruct (n_leq_Sm b n' HSn'_geq_b) as [Hb_leq_n' | Hb_eq_inverse_Sn'].
     + apply HI in Hb_leq_n' as Hpn'.
       apply (Hstep n' Hb_leq_n') in Hpn' as HpSn'.
       exact HpSn'.
-    + rewrite <- Hb_eq_Sn'.
+    + rewrite <- Hb_eq_inverse_Sn'.
       exact Hbase.
 Qed.
 
 Lemma x4_31_lemma1 : forall (a b : nat), a >= 8 -> a = ∑(b)[fun _ => 3] -> 3 <= b.
 Proof.
-  intros a b Ha_gte_8 Ha_eq_sum_b_3.
+  intros a b Ha_gte_8 Ha_eq_inverse_sum_b_3.
   destruct Ha_gte_8 as (k, H8_plus_k).
   rewrite -> sum_commutativity in H8_plus_k.
   simpl in H8_plus_k.
-  rewrite -> Ha_eq_sum_b_3 in H8_plus_k.
+  rewrite -> Ha_eq_inverse_sum_b_3 in H8_plus_k.
   destruct b as [| b'].
   - simpl in H8_plus_k. discriminate.
   - destruct b' as [| b''].
@@ -668,10 +732,10 @@ Proof.
     simpl. reflexivity.
   - intros k Hk_gte_8 HI.
     destruct HI as (x, Heb).
-    destruct Heb as (y, Hk_eq).
+    destruct Heb as (y, Hk_eq_inverse).
     destruct y as [| y'].
-    + simpl in Hk_eq.
-      destruct (x4_31_lemma1 k x Hk_gte_8 Hk_eq) as (x', H3_plus_k).
+    + simpl in Hk_eq_inverse.
+      destruct (x4_31_lemma1 k x Hk_gte_8 Hk_eq_inverse) as (x', H3_plus_k).
       exists x'. exists 2.
       unfold summation at 2.
       unfold sum at 3 2.
@@ -687,7 +751,7 @@ Proof.
       replace (S (S (S x'))) with (x' + 3) by reflexivity.
       rewrite -> (sum_commutativity x' 3).
       rewrite -> H3_plus_k.
-      rewrite <- Hk_eq.
+      rewrite <- Hk_eq_inverse.
       simpl.
       reflexivity.
     + exists (S(S x)).
@@ -701,7 +765,7 @@ Proof.
       rewrite <- sum_associativity.
       replace (5 + _) with (∑( S y' )[ fun _ : nat => 5 ]) by reflexivity.
       rewrite <- sum_associativity.
-      rewrite <- Hk_eq.
+      rewrite <- Hk_eq_inverse.
       rewrite -> sum_commutativity.
       simpl.
       reflexivity.
@@ -740,7 +804,7 @@ Proof.
   rewrite -> (square_of_sum (2 * n + 1) 2).
   rewrite -> sum_commutativity.
   rewrite <- sum_associativity.
-  apply sum_eq_inverse.
+  apply sum_eq.
   repeat rewrite -> (mult_commutativity 2 _).
   rewrite -> mult_associativity.
   replace (2^2) with (4 * 1) by reflexivity.
@@ -749,14 +813,14 @@ Proof.
   rewrite -> (mult_commutativity _ 4).
   rewrite <- distributivity.
   rewrite -> mult_associativity.
-  apply mult_eq_inverse.
+  apply mult_eq.
   rewrite -> mult_commutativity.
   simpl.
   rewrite -> sum_commutativity.
   repeat rewrite -> sum_identity.
   simpl.
   reflexivity.
-Abort.
+Qed.
 
 Definition phi2 (n : nat) := ∑(n)[mult 8] = 4 * n * (n + 1).
 
@@ -773,11 +837,53 @@ Proof.
     repeat rewrite -> (mult_associativity 4 _).
     repeat rewrite -> (mult_commutativity _ (S n')).
     repeat rewrite <- distributivity.
-    repeat apply mult_eq_inverse.
+    repeat apply mult_eq.
     rewrite -> sum_commutativity.
     simpl.
     reflexivity.
 Qed.
 
+Definition psi (n : nat) := ∑(n)[mult 8] < (2 * n + 1)^2.
 
+Theorem x4_32_iii : forall (n : nat), (psi n).
+Proof.
+  induction n as [| n' HI].
+  - unfold psi. simpl.
+    intros H0_geq_1.
+    apply (succ_leq_O 0) in H0_geq_1 as Hbot.
+    exact Hbot.
+  - unfold psi.
+    unfold psi in HI.
+    rewrite -> square_of_sum.
+    rewrite -> (succ_eq_sum1 n') at 2 3.
+    rewrite -> distributivity.
+    repeat rewrite -> mult_identity1.
+    rewrite -> distributivity.
+    rewrite -> square_of_sum.
+    repeat rewrite <- (sum_associativity (_^2) _ _).
+    rewrite -> (sum_commutativity _ (1^2)).
+    rewrite <- (sum_associativity _ (2^2) _).
+    rewrite -> (sum_commutativity (2^2) _).
+    rewrite -> (sum_commutativity (2 * _) _).
+    repeat rewrite -> (sum_associativity (1^2) _ _).
+    rewrite -> (sum_commutativity (1^2) _).
+    repeat rewrite -> (sum_associativity (_^2) _ _).
+    rewrite <- (mult_identity1 (2 * n')) at 2.
+    rewrite <- square_of_sum.
+    rewrite <- (sum_associativity (_^2) _ _).
+    replace (2 * 2 + 2 ^ 2) with (8 * 1) by reflexivity.
+    rewrite -> (mult_associativity 2 n' _).
+    rewrite -> (mult_commutativity n' _).
+    rewrite <- (mult_associativity 2 _ _).
+    rewrite <- (mult_associativity _ 2 _).
+    replace (2 * 2 * 2) with 8 by reflexivity.
+    rewrite <- sum_associativity.
+    rewrite -> (sum_commutativity (8 * 1) _).
+    rewrite <- distributivity.
+    rewrite <- (succ_eq_sum1 n').
+    rewrite -> (sum_commutativity _ (8 * _)).
+    replace (∑(_)[_]) with (8 * S n' + ∑(n')[mult 8]) by reflexivity.
+    apply sum_lt.
+    exact HI.
+Qed.
 
