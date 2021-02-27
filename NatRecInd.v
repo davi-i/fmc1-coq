@@ -355,42 +355,6 @@ Proof.
   - right. rewrite <- Hy_eq_inverse_x. reflexivity.
 Qed.
 
-(** Problema Π4.1 **)
-
-Fixpoint tetracao (n m : nat) : nat :=
-  match m with
-  | O    => S O
-  | S m' => n ^ (tetracao n m')
-  end.
-
-Notation "n ♢ m" := (tetracao n m) 
-                    (at level 20).
-
-
-(** Low level para high level **)
-
-Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
-Proof.
-  intros n. simpl. reflexivity.
-Qed.
-
-(** Somátório e produtório **)
-
-Fixpoint summation (n : nat) (f : nat -> nat) : nat :=
-  match n with
-  | O    => O
-  | S n' => (f n) + (summation n' f)
-  end.
-
-(** Fixpoint summation2 (n : nat) (m : nat) (f : nat -> nat) : nat :=
-  match m with
-  | n => (f n)
-  | S m' => (f m) + (summation2 n (S m) f)
-  end. **)
-
-Notation "∑( n )[ f  ]" := (summation n f).
-
-
 Theorem sum_eq_0 : forall (a b : nat), a + b = 0 -> a = 0 /\ b = 0.
 Proof.
   intros a b Ha_plus_b.
@@ -562,6 +526,56 @@ Proof.
     simpl in Ha_exp_Sk.
 Abort.
 
+(** Problema Π4.1 **)
+
+Fixpoint tetracao (n m : nat) : nat :=
+  match m with
+  | O    => S O
+  | S m' => n ^ (tetracao n m')
+  end.
+
+Notation "n ♢ m" := (tetracao n m) 
+                    (at level 20).
+
+
+(** Low level para high level **)
+
+Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
+Proof.
+  intros n. simpl. reflexivity.
+Qed.
+
+(** Somátório e produtório **)
+
+Fixpoint leq_bool (n m : nat) : bool :=
+match n, m with
+| O, _       => true
+| S _, O     => false
+| S n', S m' => (leq_bool n' m')
+end.
+
+Notation "n <=? m" := (leq_bool n m) (at level 50).
+
+Fixpoint summation (n : nat) (m : nat) (f : nat -> nat) : nat :=
+match n, m with
+| O,  O    => f (O)
+| O,  S m' => O
+| S n', _  => if (m <=? n)
+              then (f n) + (summation n' m f)
+              else 0
+end.
+
+(** Fixpoint summation2 (n : nat) (m : nat) (f : nat -> nat) : nat :=
+  match m with
+  | n => (f n)
+  | S m' => (f m) + (summation2 n (S m) f)
+  end. **)
+
+Notation "∑( m 'to' n )[ i |-> f  ]" := (summation n m (fun i : nat => f)).
+Notation "∑( n )[ i |-> f  ]" := (summation n 1 (fun i : nat => f)).
+
+Compute ∑(0 to 3)[a |-> a^2 + 1].
+
 Theorem square_of_sum : forall (a b : nat), (a + b)^2 = a^2 + 2 * (a * b) + b^2.
 Proof.
   intros a b.
@@ -583,10 +597,9 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem cube_of_sum : forall (a b : nat), (a + b)^3 = a^3 + 3 * a^2 * b + 3 * a * b^2 + b^3.
+Theorem cube_of_sum : forall (a b : nat), (a + b)^3 = a^3 + 3 * (a^2 * b) + 3 * (a * b^2) + b^3.
 Proof.
   intros a b.
-  repeat rewrite -> (mult_associativity 3 _ _).
   repeat rewrite -> (mult_commutativity 3 _).
   replace (a^2 * b * 3) with (a^2 * b * 2 + a^2 * b) by reflexivity.
   replace (a * b^2 * 3) with (a * b^2 * 2 + a * b^2) by reflexivity.
@@ -617,13 +630,12 @@ Proof.
   reflexivity.
 Qed.
 
-
 Example x4_26 :
-  forall (n : nat), (∑(n)[fun i => 4 * i^3]) = n^2 * (n + 1)^2.
+  forall (n : nat), (∑(n)[i |-> 4 * i^3]) = n^2 * (n + 1)^2.
 Proof.
   intros n. induction n as [| n' HI].
   - simpl. reflexivity.
-  - unfold summation. fold summation.
+  - replace (∑(_)[i |-> _]) with (4 * S n'^3 + ∑(n')[i |-> 4 * i^3]) by reflexivity.
     rewrite -> HI.
     replace (n' + 1) with (S n') by reflexivity.
     rewrite -> mult_commutativity.
@@ -647,42 +659,87 @@ Proof.
 Qed.
 
 Theorem distributivity_summation :
-  forall (n m : nat)(f : nat -> nat), ∑(n)[fun i => m * (f i)] = m * ∑(n)[f].
+  forall (n m : nat) (f : nat -> nat), ∑(n)[i |-> m * (f i)] = m * ∑(n)[i |-> (f i)].
 Proof.
   intros n. induction n as [| n' HI].
   - intros m f. simpl. reflexivity.
-  - intros m f. unfold summation. fold summation.
+  - intros m f.
+    replace (∑(_)[i |-> _]) with (m * (f (S n')) + ∑(n')[i |-> m * f i]) by reflexivity.
+    replace (∑(S n')[i |-> _]) with ((f (S n')) + ∑(n')[i |-> f i]) by reflexivity.
     rewrite -> (HI m f).
     rewrite -> distributivity.
     reflexivity.
 Qed.
 
-Example x4_29 :  forall (n : nat), 6 * ∑(n)[fun i => i^2] = 2 * n^3 + 3 * n^2 + n.
+Example x4_29 :  forall (n : nat), 6 * ∑(n)[i |-> i^2] = 2 * n^3 + 3 * n^2 + n.
 Proof.
   induction n as [| n' HI].
   - simpl. reflexivity.
-  - unfold summation. fold summation.
+  - replace (∑(_)[i |-> _]) with ((S n' ^ 2) + ∑(n')[i |-> i^2]) by reflexivity.
     rewrite -> distributivity.
     rewrite -> HI.
-    rewrite -> (succ_eq_sum1 n').
+    rewrite -> (succ_eq_sum1 n') at 1.
     rewrite -> square_of_sum.
-    rewrite -> cube_of_sum.
     repeat rewrite -> distributivity.
-Abort.
+    rewrite -> exp_law_3.
+    repeat rewrite -> mult_identity1.
+    rewrite <- (mult_associativity 6 _ _).
+    rewrite -> (mult_commutativity _ n').
+    replace (6 * 2) with (2*3 + 3*2) by reflexivity.
+    replace 6 with (2 + 3 + 1) at 2 by reflexivity.
+    rewrite -> distributivity.
+    rewrite <- (sum_associativity _ (2 + 3 + 1) (_ + _ + _)).
+    rewrite <- (sum_associativity _ 1 (_ + _ + _)).
+    rewrite -> (sum_commutativity 1 _).
+    rewrite <- (sum_associativity _ _ 1).
+    rewrite -> (sum_associativity _ _ (_ + 1)).
+    rewrite <- (sum_associativity 2 _ _).
+    rewrite -> (sum_commutativity 3 _).
+    rewrite -> (sum_associativity 2 _ _).
+    rewrite -> (sum_associativity 2 _ _).
+    rewrite -> (sum_commutativity 2 _).
+    rewrite -> (sum_associativity _ _ (n' + 1)).
+    rewrite -> (sum_associativity _ _ 3).
+    rewrite -> (sum_associativity _ _ (n' * _)).
+    rewrite <- (sum_associativity _ (n' * _) _).
+    rewrite -> (sum_associativity (n' * _) _ _).
+    rewrite -> (sum_commutativity (n' * _) _).
+    rewrite <- (sum_associativity _ (n' * _) (3 * n'^2)).
+    rewrite -> (sum_commutativity (n' * _) _).
+    rewrite -> (sum_associativity _ _ (_ + n' * _)).
+    rewrite -> (sum_associativity _ _ 2).
+    rewrite -> (sum_commutativity _ (2 * n'^3)).
+    rewrite <- (sum_associativity _ _ 3).
+    rewrite -> (sum_associativity _ _ (n' * _)).
+    repeat rewrite -> (mult_commutativity n' _).
+    repeat rewrite -> (mult_associativity _ _ n').
+    replace 6 with (2 * 3) by reflexivity.
+    repeat rewrite -> (mult_associativity _ _ (n'^2)).
+    replace 2 with (2 * 1) at 8 by reflexivity.
+    replace 3 with (3 * 1) at 6 by reflexivity.
+    repeat rewrite <- distributivity.
+    rewrite <- (mult_identity1 (n' ^ 2)) at 1.
+    rewrite <- (mult_identity1 (n')) at 3 5.
+    replace (n' * 1) with (n' * 1^2) at 1 by reflexivity.
+    rewrite <- cube_of_sum.
+    rewrite <- square_of_sum.
+    rewrite <- succ_eq_sum1.
+    reflexivity.
+Qed.
 
-Example x4_30 : forall (n : nat), ∑(n)[fun i => i^3] = (∑(n)[fun i => i])^2.
+Example x4_30 : forall (n : nat), ∑(n)[i |-> i^3] = (∑(n)[i |-> i])^2.
 Proof.
   induction n as [| n' HI].
   - simpl. reflexivity.
-  - unfold summation. fold summation.
+  - (* unfold summation. fold summation.
     rewrite -> HI.
     rewrite -> square_of_sum.
     replace (S n' ^ 2 + 2 * (S n' * _)) with (S n' ^ 3).
-      { reflexivity. }
+      { reflexivity. } *)
 Abort.
 
-Theorem indution_starting_in_b :
-  forall (b : nat)(phi : nat -> Prop),
+Theorem indution_starting_in :
+  forall (b : nat) (phi : nat -> Prop),
     (phi b) /\ (forall k : nat, k >= b -> ((phi k) -> (phi (S k))))
     -> forall (n : nat), (n >= b -> (phi n)).
 Proof.
@@ -705,73 +762,7 @@ Proof.
       exact Hbase.
 Qed.
 
-Lemma x4_31_lemma1 : forall (a b : nat), a >= 8 -> a = ∑(b)[fun _ => 3] -> 3 <= b.
-Proof.
-  intros a b Ha_gte_8 Ha_eq_inverse_sum_b_3.
-  destruct Ha_gte_8 as (k, H8_plus_k).
-  rewrite -> sum_commutativity in H8_plus_k.
-  simpl in H8_plus_k.
-  rewrite -> Ha_eq_inverse_sum_b_3 in H8_plus_k.
-  destruct b as [| b'].
-  - simpl in H8_plus_k. discriminate.
-  - destruct b' as [| b''].
-    + simpl in H8_plus_k. discriminate.
-    + destruct b'' as [| b'''].
-      * simpl in H8_plus_k. discriminate.
-      * exists b'''.
-        rewrite -> sum_commutativity.
-        simpl. reflexivity.
-Qed.
-
-
-Example x4_31 : forall (n : nat), n >= 8 -> exists (a b : nat), n = ∑(a)[fun _ => 3] + ∑(b)[fun _ => 5].
-Proof.
-  apply (indution_starting_in_b 8).
-  split.
-  - exists 1. exists 1.
-    simpl. reflexivity.
-  - intros k Hk_gte_8 HI.
-    destruct HI as (x, Heb).
-    destruct Heb as (y, Hk_eq_inverse).
-    destruct y as [| y'].
-    + simpl in Hk_eq_inverse.
-      destruct (x4_31_lemma1 k x Hk_gte_8 Hk_eq_inverse) as (x', H3_plus_k).
-      exists x'. exists 2.
-      unfold summation at 2.
-      unfold sum at 3 2.
-      replace 10 with (3 + 3 + 3 + 1) by reflexivity.
-      rewrite -> sum_associativity.
-      rewrite -> (sum_commutativity _ (_ + _)).
-      rewrite <- (sum_associativity 3 3 _).
-      rewrite <- (sum_associativity 3 _ _).
-      rewrite <- (sum_associativity 3 3 _).
-      replace (3 + ∑( _ )[ _ ]) with (∑( S x' )[ fun _ : nat => 3 ]) by reflexivity.
-      replace (3 + ∑( _ )[ _ ]) with (∑( S(S x') )[ fun _ : nat => 3 ]) by reflexivity.
-      replace (3 + ∑( _ )[ _ ]) with (∑( S(S(S x')) )[ fun _ : nat => 3 ]) by reflexivity.
-      replace (S (S (S x'))) with (x' + 3) by reflexivity.
-      rewrite -> (sum_commutativity x' 3).
-      rewrite -> H3_plus_k.
-      rewrite <- Hk_eq_inverse.
-      simpl.
-      reflexivity.
-    + exists (S(S x)).
-      exists y'.
-      unfold summation at 1. fold summation.
-      rewrite -> sum_associativity.
-      replace (3 + 3) with (1 + 5) by reflexivity.
-      rewrite <- (sum_associativity 1 _ _).
-      rewrite -> (sum_commutativity 5 _).
-      rewrite -> sum_associativity.
-      rewrite <- sum_associativity.
-      replace (5 + _) with (∑( S y' )[ fun _ : nat => 5 ]) by reflexivity.
-      rewrite <- sum_associativity.
-      rewrite <- Hk_eq_inverse.
-      rewrite -> sum_commutativity.
-      simpl.
-      reflexivity.
-Qed.
-
-Theorem inducao_duas_bases : forall (phi : nat -> Prop),
+Theorem induction_two_bases : forall (phi : nat -> Prop),
   ((phi 0) /\ (phi 1)) /\ (forall (k : nat), (phi k) /\ (phi (S k)) -> (phi (S(S k))))
   -> forall (n : nat), (phi n).
 Proof.
@@ -790,100 +781,194 @@ Proof.
   exact Hpn.
 Qed.
 
-
-Definition phi (n : nat) := ∑(n)[mult 8] = (2 * n + 1)^2.
-
-Theorem x4_32i : forall (n : nat), (phi n) -> (phi (S n)).
+Theorem induction_three_bases : forall (phi : nat -> Prop),
+  ((phi 0) /\ (phi 1) /\ (phi 2)) /\ (forall (k : nat), (phi k) /\ (phi (S k)) /\ (phi (S(S k))) -> (phi (S(S(S k)))))
+  -> forall (n : nat), (phi n).
 Proof.
+  intros phi Hind.
+  destruct Hind as (Hbase, Hstep).
+  assert (HphinSnSSn: forall n : nat, (phi n) /\ (phi (S n) /\ (phi (S(S n))))).
+    { induction n as [| n' HI].
+      - exact Hbase.
+      - apply (Hstep n') in HI as HpSSSn'.
+        destruct HI as (Hpn', H).
+        destruct H as (HpSn', HpSSn').
+        repeat split; assumption || split. }
   intros n.
-  unfold phi.
-  intros Hpn.
-  unfold summation. fold summation.
-  rewrite -> Hpn.
-  replace (2 * S n + 1) with (2 * n + 1 + 2) by reflexivity.
-  rewrite -> (square_of_sum (2 * n + 1) 2).
-  rewrite -> sum_commutativity.
-  rewrite <- sum_associativity.
-  apply sum_eq.
-  repeat rewrite -> (mult_commutativity 2 _).
-  rewrite -> mult_associativity.
-  replace (2^2) with (4 * 1) by reflexivity.
-  replace (2 * 2) with 4 by reflexivity.
-  replace 8 with (4 * 2) by reflexivity.
-  rewrite -> (mult_commutativity _ 4).
-  rewrite <- distributivity.
-  rewrite -> mult_associativity.
-  apply mult_eq.
-  rewrite -> mult_commutativity.
-  simpl.
-  rewrite -> sum_commutativity.
-  repeat rewrite -> sum_identity.
-  simpl.
+  destruct (HphinSnSSn n) as (Hpn, HpSnSSn).
+  exact Hpn.
+Qed.
+
+Theorem induction_three_bases_startin_in : forall (b : nat) (phi : nat -> Prop),
+  ((phi b) /\ (phi (S b)) /\ (phi (S(S b)))) /\
+  (forall (k : nat), (k >= b) -> (phi k) /\ (phi (S k)) /\ (phi (S(S k))) -> (phi (S(S(S k)))))
+  -> forall (n : nat), n >= b -> (phi n).
+Proof.
+  intros b phi Hind.
+  destruct Hind as (Hbase, Hstep).
+  assert (Hphi: forall n : nat, n >= b -> (phi n) /\ (phi (S n) /\ (phi (S(S n))))).
+    { apply (indution_starting_in b). split.
+      - exact Hbase.
+      - intros k Hk_geq_b HI.
+        apply (Hstep k Hk_geq_b) in HI as HpSSSSk.
+        destruct HI as (Hpk, H).
+        destruct H as (HpSk, HpSSk).
+        repeat split; assumption || split. }
+  intros n Hn_geq_b.
+  destruct (Hphi n Hn_geq_b) as (Hpn, H).
+  exact Hpn.
+Qed.
+
+Lemma succ_eq : forall (n m : nat), n = m -> S n = S m.
+Proof.
+  intros n m Hn_eq_m.
+  rewrite -> Hn_eq_m.
   reflexivity.
 Qed.
 
-Definition phi2 (n : nat) := ∑(n)[mult 8] = 4 * n * (n + 1).
-
-Theorem x4_32_alt : forall (n : nat), (phi2 n).
+Example x4_31 : forall (n : nat), n >= 8 -> exists (a b : nat), n = 3 * a + 5 * b.
 Proof.
-  induction n as [| n' HI].
-  - unfold phi2. simpl. reflexivity.
-  - unfold phi2.
-    unfold phi2 in HI.
-    unfold summation. fold summation.
-    rewrite -> HI.
-    rewrite <- succ_eq_sum1.
-    replace 8 with (4 * 2) by reflexivity.
-    repeat rewrite -> (mult_associativity 4 _).
-    repeat rewrite -> (mult_commutativity _ (S n')).
-    repeat rewrite <- distributivity.
-    repeat apply mult_eq.
-    rewrite -> sum_commutativity.
+  apply (induction_three_bases_startin_in 8).
+  split.
+  - split.
+    + exists 1. exists 1.
+    simpl. reflexivity.
+    + split.
+      * exists 3. exists 0.
+        simpl. reflexivity.
+      * exists 0. exists 2.
+        simpl. reflexivity.
+  - intros k Hk_gte_8 HI.
+    repeat destruct HI as (HI1, HI).
+    destruct HI1 as (a', Ha').
+    destruct Ha' as (b', Hab').
+    exists (S a'). exists b'.
+    replace (3 * S a') with (3 * a' + 3) by reflexivity.
+    rewrite <- sum_associativity.
+    rewrite -> (sum_commutativity 3 _).
+    rewrite -> sum_associativity.
+    rewrite <- Hab'.
     simpl.
     reflexivity.
 Qed.
 
-Definition psi (n : nat) := ∑(n)[mult 8] < (2 * n + 1)^2.
+Module x4_32.
+  Definition phi (n : nat) := ∑(n)[i |-> 8 * i] = (2 * n + 1)^2.
 
-Theorem x4_32_iii : forall (n : nat), (psi n).
+  Theorem x4_32i : forall (n : nat), (phi n) -> (phi (S n)).
+  Proof.
+    intros n.
+    unfold phi.
+    intros Hpn.
+    replace (∑(_)[i |-> _]) with (8 * S n + ∑(n)[i |-> 8 * i]) by reflexivity.
+    rewrite -> Hpn.
+    replace (2 * S n + 1) with (2 * n + 1 + 2) by reflexivity.
+    rewrite -> (square_of_sum (2 * n + 1) 2).
+    rewrite -> sum_commutativity.
+    rewrite <- sum_associativity.
+    apply sum_eq.
+    repeat rewrite -> (mult_commutativity 2 _).
+    rewrite -> mult_associativity.
+    replace (2^2) with (4 * 1) by reflexivity.
+    replace (2 * 2) with 4 by reflexivity.
+    replace 8 with (4 * 2) by reflexivity.
+    rewrite -> (mult_commutativity _ 4).
+    rewrite <- distributivity.
+    rewrite -> mult_associativity.
+    apply mult_eq.
+    rewrite -> mult_commutativity.
+    simpl.
+    rewrite -> sum_commutativity.
+    repeat rewrite -> sum_identity.
+    simpl.
+    reflexivity.
+  Qed.
+
+  Definition phi2 (n : nat) := ∑(n)[i |-> 8 * i] = 4 * n * (n + 1).
+
+  Theorem x4_32_alt : forall (n : nat), (phi2 n).
+  Proof.
+    induction n as [| n' HI].
+    - unfold phi2. simpl. reflexivity.
+    - unfold phi2.
+      unfold phi2 in HI.
+    replace (∑(_)[i |-> _]) with (8 * S n' + ∑(n')[i |-> 8 * i]) by reflexivity.
+      rewrite -> HI.
+      rewrite <- succ_eq_sum1.
+      replace 8 with (4 * 2) by reflexivity.
+      repeat rewrite -> (mult_associativity 4 _).
+      repeat rewrite -> (mult_commutativity _ (S n')).
+      repeat rewrite <- distributivity.
+      repeat apply mult_eq.
+      rewrite -> sum_commutativity.
+      simpl.
+      reflexivity.
+  Qed.
+
+  Definition psi (n : nat) := ∑(n)[i |-> 8 * i] < (2 * n + 1)^2.
+
+  Theorem x4_32_iii : forall (n : nat), (psi n).
+  Proof.
+    induction n as [| n' HI].
+    - unfold psi. simpl.
+      intros H0_geq_1.
+      apply (succ_leq_O 0) in H0_geq_1 as Hbot.
+      exact Hbot.
+    - unfold psi.
+      unfold psi in HI.
+      rewrite -> square_of_sum.
+      rewrite -> (succ_eq_sum1 n') at 2 3.
+      rewrite -> distributivity.
+      repeat rewrite -> mult_identity1.
+      rewrite -> distributivity.
+      rewrite -> square_of_sum.
+      repeat rewrite <- (sum_associativity (_^2) _ _).
+      rewrite -> (sum_commutativity _ (1^2)).
+      rewrite <- (sum_associativity _ (2^2) _).
+      rewrite -> (sum_commutativity (2^2) _).
+      rewrite -> (sum_commutativity (2 * _) _).
+      repeat rewrite -> (sum_associativity (1^2) _ _).
+      rewrite -> (sum_commutativity (1^2) _).
+      repeat rewrite -> (sum_associativity (_^2) _ _).
+      rewrite <- (mult_identity1 (2 * n')) at 2.
+      rewrite <- square_of_sum.
+      rewrite <- (sum_associativity (_^2) _ _).
+      replace (2 * 2 + 2 ^ 2) with (8 * 1) by reflexivity.
+      rewrite -> (mult_associativity 2 n' _).
+      rewrite -> (mult_commutativity n' _).
+      rewrite <- (mult_associativity 2 _ _).
+      rewrite <- (mult_associativity _ 2 _).
+      replace (2 * 2 * 2) with 8 by reflexivity.
+      rewrite <- sum_associativity.
+      rewrite -> (sum_commutativity (8 * 1) _).
+      rewrite <- distributivity.
+      rewrite <- (succ_eq_sum1 n').
+      rewrite -> (sum_commutativity _ (8 * _)).
+      replace (∑(_)[i |-> _]) with (8 * S n' + ∑(n')[i |-> 8 * i]) by reflexivity.
+      apply sum_lt.
+      exact HI.
+  Qed.
+End x4_32.
+
+Fixpoint fibonacci (n : nat) :=
+match n with
+| O               => O
+| S O             => S O
+| S (S n'' as n') => (fibonacci n') + (fibonacci n'')
+end.
+
+Notation "F( n  )" := (fibonacci n).
+
+Example x4_33 : forall (n : nat), ∑(0 to n)[i |-> F(i)] + 1 = F(n + 2).
 Proof.
   induction n as [| n' HI].
-  - unfold psi. simpl.
-    intros H0_geq_1.
-    apply (succ_leq_O 0) in H0_geq_1 as Hbot.
-    exact Hbot.
-  - unfold psi.
-    unfold psi in HI.
-    rewrite -> square_of_sum.
-    rewrite -> (succ_eq_sum1 n') at 2 3.
-    rewrite -> distributivity.
-    repeat rewrite -> mult_identity1.
-    rewrite -> distributivity.
-    rewrite -> square_of_sum.
-    repeat rewrite <- (sum_associativity (_^2) _ _).
-    rewrite -> (sum_commutativity _ (1^2)).
-    rewrite <- (sum_associativity _ (2^2) _).
-    rewrite -> (sum_commutativity (2^2) _).
-    rewrite -> (sum_commutativity (2 * _) _).
-    repeat rewrite -> (sum_associativity (1^2) _ _).
-    rewrite -> (sum_commutativity (1^2) _).
-    repeat rewrite -> (sum_associativity (_^2) _ _).
-    rewrite <- (mult_identity1 (2 * n')) at 2.
-    rewrite <- square_of_sum.
-    rewrite <- (sum_associativity (_^2) _ _).
-    replace (2 * 2 + 2 ^ 2) with (8 * 1) by reflexivity.
-    rewrite -> (mult_associativity 2 n' _).
-    rewrite -> (mult_commutativity n' _).
-    rewrite <- (mult_associativity 2 _ _).
-    rewrite <- (mult_associativity _ 2 _).
-    replace (2 * 2 * 2) with 8 by reflexivity.
+  - simpl. reflexivity.
+  - replace (∑(_ to _)[i |-> _]) with (F(S n') + ∑(0 to n')[i |-> F(i)]) by reflexivity.
     rewrite <- sum_associativity.
-    rewrite -> (sum_commutativity (8 * 1) _).
-    rewrite <- distributivity.
-    rewrite <- (succ_eq_sum1 n').
-    rewrite -> (sum_commutativity _ (8 * _)).
-    replace (∑(_)[_]) with (8 * S n' + ∑(n')[mult 8]) by reflexivity.
-    apply sum_lt.
-    exact HI.
+    rewrite -> HI.
+    replace (n' + 2) with (S(S n')) by reflexivity.
+    rewrite -> sum_commutativity.
+    replace (F(_) + F(_)) with (F(S(S(S n')))) by reflexivity.
+    replace (S n' + 2) with (S(S(S n'))) by reflexivity.
+    reflexivity.
 Qed.
-
