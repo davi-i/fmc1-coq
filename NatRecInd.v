@@ -217,12 +217,12 @@ Proof.
     assumption.
 Qed.
 
-Theorem leq_reflexity : forall (x : nat), x <= x.
+Theorem leq_reflexivity : forall (x : nat), x <= x.
 Proof.
   intros x. exists O. simpl. reflexivity.
 Qed.
 
-Lemma succ_leq_O : forall (x : nat), ~(S x <= O).
+Lemma not_succ_leq_O : forall (x : nat), ~(S x <= O).
 Proof.
   intros x HSx_leq_O.
   destruct HSx_leq_O as (k, HSx_plus_k).
@@ -230,7 +230,7 @@ Proof.
   simpl in HSx_plus_k. inversion HSx_plus_k.
 Qed.
 
-Lemma leq_succ : forall (x y : nat), S x <= S y -> x <= y.
+Lemma succ_leq_succ : forall (x y : nat), S x <= S y -> x <= y.
 Proof.
   intros x y HSx_lqe_Sy.
   destruct HSx_lqe_Sy as (k, HSx_plus_k).
@@ -249,15 +249,15 @@ Proof.
   - intros y HO_leq_y__and__y_leq_O. destruct y as [| y'] eqn:Ey.
     + reflexivity.
     + destruct HO_leq_y__and__y_leq_O as (HO_leq_Sy', HSy'_leq_O).
-      apply (succ_leq_O y') in HSy'_leq_O as Hbot.
+      apply (not_succ_leq_O y') in HSy'_leq_O as Hbot.
       contradiction.
   - intros y HSx'_leq_y__and__y_leq_Sx'.
     destruct HSx'_leq_y__and__y_leq_Sx' as (HSx'_leq_y, Hy_leq_Sx').
     destruct y as [| y'] eqn:Ey.
-    + apply (succ_leq_O x') in HSx'_leq_y as Hbot.
+    + apply (not_succ_leq_O x') in HSx'_leq_y as Hbot.
       contradiction.
-    + apply (leq_succ x' y') in HSx'_leq_y as Hx'_leq_y'.
-      apply (leq_succ y' x') in Hy_leq_Sx' as Hy'_leq_x'.
+    + apply (succ_leq_succ x' y') in HSx'_leq_y as Hx'_leq_y'.
+      apply (succ_leq_succ y' x') in Hy_leq_Sx' as Hy'_leq_x'.
       assert (Hx'_leq_y'__and__y'_leq_x': x' <= y' /\ y' <= x').
         { split.
           - exact Hx'_leq_y'.
@@ -286,7 +286,7 @@ Proof.
   simpl. reflexivity.
 Qed.
 
-Lemma leq_succ_inverse : forall (x y : nat), x <= y -> S x <= S y.
+Lemma succ_leq_succ_inverse : forall (x y : nat), x <= y -> S x <= S y.
 Proof.
   intros x y Hx_leq_y.
   destruct Hx_leq_y as (k, Hy_plus_k).
@@ -307,8 +307,8 @@ Proof.
     destruct y as [| y'].
     + right. exact (O_leq_x (S x')).
     + destruct (HI y') as [Hx'_leq_y' | Hy'_leq_x'].
-      * left. exact (leq_succ_inverse x' y' Hx'_leq_y').
-      * right. exact (leq_succ_inverse y' x' Hy'_leq_x').
+      * left. exact (succ_leq_succ_inverse x' y' Hx'_leq_y').
+      * right. exact (succ_leq_succ_inverse y' x' Hy'_leq_x').
 Qed.
 
 Lemma x_plus_Sy : forall (x y : nat), x + S y <> x.
@@ -325,7 +325,7 @@ Proof.
     exact Hbot.
 Qed.
 
-Theorem lt_or_eq_inverse : forall (x y : nat), x <= y -> x < y \/ x = y.
+Theorem lt_or_eq : forall (x y : nat), x <= y -> x < y \/ x = y.
 Proof.
   intros x y Hx_leq_y.
   destruct Hx_leq_y as (k, Hx_plus_k).
@@ -346,13 +346,105 @@ Proof.
     exact Hbot.
 Qed.
 
-Theorem gt_or_eq_inverse : forall (x y : nat), x >= y -> x > y \/ x = y.
+Theorem gt_or_eq : forall (x y : nat), x >= y -> x > y \/ x = y.
 Proof.
   intros x y Hx_geq_y.
-  apply (lt_or_eq_inverse y x) in Hx_geq_y as Hy_lt_x__or__y_eq_inverse_x.
+  apply (lt_or_eq y x) in Hx_geq_y as Hy_lt_x__or__y_eq_inverse_x.
   destruct Hy_lt_x__or__y_eq_inverse_x as [Hy_lt_x | Hy_eq_inverse_x].
   - left. unfold lt in Hy_lt_x. exact Hy_lt_x.
   - right. rewrite <- Hy_eq_inverse_x. reflexivity.
+Qed.
+
+Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
+Proof.
+  intros n. simpl. reflexivity.
+Qed.
+
+Theorem not_reflexivity_lt : forall (n : nat), ~(n < n).
+Proof.
+  intros n Hn_lt_n.
+  assert (Hn_leq_n: n <= n).
+    { exact (leq_reflexivity n). }
+  apply Hn_lt_n in Hn_leq_n as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem not_reflexivity_gt : forall (n : nat), ~(n > n).
+Proof.
+  exact not_reflexivity_lt.
+Qed.
+
+Theorem lt_transitivity : forall (x y z : nat), x < y /\ y < z -> x < z.
+Proof.
+  intros x y z Hand Hz_leq_x.
+  destruct Hand as (Hx_lt_y, Hy_lt_z).
+  destruct (leq_total x y) as [Hx_leq_y | Hy_leq_x].
+  - assert (z <= x /\ x <= y) by (split; assumption).
+    apply (leq_transitivity z x y) in H as Hz_leq_y.
+    apply Hy_lt_z in Hz_leq_y as Hbot.
+    exact Hbot.
+  - apply Hx_lt_y in Hy_leq_x as Hbot.
+    exact Hbot.
+Qed.
+
+Theorem not_lt_0 : forall (n : nat), ~(n < 0).
+Proof.
+  intros n Hn_lt_0.
+  assert (H0_leq_n: 0 <= n).
+    { exact (O_leq_x n). }
+  apply Hn_lt_0 in H0_leq_n as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem lt_succ : forall (n : nat), n < (S n).
+Proof.
+  intros n HSn_leq_n.
+  rewrite -> succ_eq_sum1 in HSn_leq_n.
+  destruct HSn_leq_n as (k, HSn_plus_k).
+  rewrite <- sum_associativity in HSn_plus_k.
+  rewrite -> (sum_commutativity 1 k) in HSn_plus_k.
+  rewrite <- succ_eq_sum1 in HSn_plus_k.
+  apply (x_plus_Sy n k) in HSn_plus_k as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem lt_implies_leq : forall (n m : nat), n < m -> n <= m.
+Proof.
+  intros n m Hn_lt_m.
+  destruct (leq_total n m) as [Hn_leq_m | Hm_leq_n].
+  - exact Hn_leq_m.
+  - apply Hn_lt_m in Hm_leq_n as Hbot.
+    contradiction.
+Qed.
+
+(* Theorem n_lt_Sm : forall (n m : nat), n <= m -> n < S m.
+Proof.
+  intros n m Hn_leq_m HSm_leq_n.
+  apply (lt_succ m).
+  apply (leq_transitivity (S m) n m).
+  split; assumption.
+Qed. *)
+
+Theorem n_lt_Sm: forall (n m : nat), n < S m -> n <= m.
+Proof.
+  intros n m Hn_lt_Sm.
+  destruct (leq_total n m) as [Hn_leq_m | Hm_leq_n].
+  - exact Hn_leq_m.
+  - destruct Hm_leq_n as (k, Hm_plus_k).
+    destruct k as [| k'].
+    + exists 0.
+      rewrite <- Hm_plus_k.
+      simpl.
+      reflexivity.
+    + assert (Hbot : False).
+        { apply Hn_lt_Sm.
+          exists k'.
+          rewrite <- Hm_plus_k.
+          rewrite -> sum_commutativity.
+          simpl.
+          rewrite -> sum_commutativity.
+          reflexivity. }
+        contradiction.
 Qed.
 
 Theorem sum_eq_0 : forall (a b : nat), a + b = 0 -> a = 0 /\ b = 0.
@@ -526,25 +618,6 @@ Proof.
     simpl in Ha_exp_Sk.
 Abort.
 
-(** Problema Π4.1 **)
-
-Fixpoint tetracao (n m : nat) : nat :=
-  match m with
-  | O    => S O
-  | S m' => n ^ (tetracao n m')
-  end.
-
-Notation "n ♢ m" := (tetracao n m) 
-                    (at level 20).
-
-
-(** Low level para high level **)
-
-Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
-Proof.
-  intros n. simpl. reflexivity.
-Qed.
-
 (** Somátório e produtório **)
 
 Fixpoint leq_bool (n m : nat) : bool :=
@@ -564,12 +637,6 @@ match n, m with
               then (f n) + (summation n' m f)
               else 0
 end.
-
-(** Fixpoint summation2 (n : nat) (m : nat) (f : nat -> nat) : nat :=
-  match m with
-  | n => (f n)
-  | S m' => (f m) + (summation2 n (S m) f)
-  end. **)
 
 Notation "∑( m 'to' n )[ i |-> f  ]" := (summation n m (fun i : nat => f)).
 Notation "∑( n )[ i |-> f  ]" := (summation n 1 (fun i : nat => f)).
@@ -853,14 +920,15 @@ Proof.
 Qed.
 
 Module x4_32.
-  Definition phi (n : nat) := ∑(n)[i |-> 8 * i] = (2 * n + 1)^2.
+  Definition phi (n : nat) := 8 * ∑(n)[i |-> i] = (2 * n + 1)^2.
 
   Theorem x4_32i : forall (n : nat), (phi n) -> (phi (S n)).
   Proof.
     intros n.
     unfold phi.
     intros Hpn.
-    replace (∑(_)[i |-> _]) with (8 * S n + ∑(n)[i |-> 8 * i]) by reflexivity.
+    replace (∑(_)[i |-> _]) with (S n + ∑(n)[i |-> i]) by reflexivity.
+    rewrite -> distributivity.
     rewrite -> Hpn.
     replace (2 * S n + 1) with (2 * n + 1 + 2) by reflexivity.
     rewrite -> (square_of_sum (2 * n + 1) 2).
@@ -905,19 +973,19 @@ Module x4_32.
       reflexivity.
   Qed.
 
-  Definition psi (n : nat) := ∑(n)[i |-> 8 * i] < (2 * n + 1)^2.
+  Definition psi (n : nat) := 8 * ∑(n)[i |-> i] < (2 * n + 1)^2.
 
   Theorem x4_32_iii : forall (n : nat), (psi n).
   Proof.
     induction n as [| n' HI].
     - unfold psi. simpl.
       intros H0_geq_1.
-      apply (succ_leq_O 0) in H0_geq_1 as Hbot.
+      apply (not_succ_leq_O 0) in H0_geq_1 as Hbot.
       exact Hbot.
     - unfold psi.
       unfold psi in HI.
+      rewrite -> (succ_eq_sum1 n') at 2.
       rewrite -> square_of_sum.
-      rewrite -> (succ_eq_sum1 n') at 2 3.
       rewrite -> distributivity.
       repeat rewrite -> mult_identity1.
       rewrite -> distributivity.
@@ -944,7 +1012,8 @@ Module x4_32.
       rewrite <- distributivity.
       rewrite <- (succ_eq_sum1 n').
       rewrite -> (sum_commutativity _ (8 * _)).
-      replace (∑(_)[i |-> _]) with (8 * S n' + ∑(n')[i |-> 8 * i]) by reflexivity.
+      replace (∑(_)[i |-> _]) with (S n' + ∑(n')[i |-> i]) by reflexivity.
+      rewrite -> distributivity.
       apply sum_lt.
       exact HI.
   Qed.
@@ -971,4 +1040,75 @@ Proof.
     replace (F(_) + F(_)) with (F(S(S(S n')))) by reflexivity.
     replace (S n' + 2) with (S(S(S n'))) by reflexivity.
     reflexivity.
+Qed.
+
+
+Example x4_34 : forall (n : nat), ∑(n)[i |-> (F(i))^2] = F(n) * F(n + 1).
+Proof.
+  induction n as [| n' HI].
+  - simpl. reflexivity.
+  - replace (∑(_)[_ |-> _]) with (F(S n')^2 + ∑(n')[i |-> F(i)^2]) by reflexivity.
+    rewrite -> HI.
+    repeat rewrite <- succ_eq_sum1.
+    unfold exp.
+    rewrite -> mult_identity.
+    rewrite -> (mult_commutativity F(n') _).
+    rewrite <- distributivity.
+    replace (F(S n') + F(n')) with (F(S(S n'))) by reflexivity.
+    reflexivity.
+Qed.
+
+
+Fixpoint product (n m : nat)(f : nat -> nat) : nat :=
+match n, m with
+| O, O    => f(O)
+| O, S _  => S O
+| S n', _ => if (m <=? n)
+             then (f n) * (product n' m f)
+             else (S O)
+end.
+
+Notation "∏( m 'to' n )[ i |-> f ]" := (product n m (fun i : nat => f)).
+Notation "∏( n )[ i |-> f ]" := (product n 1 (fun i : nat => f)).
+
+(** Intervalo de problemas **)
+
+Fixpoint tetracao (n m : nat) : nat :=
+match m with
+| O    => S O
+| S m' => n ^ (tetracao n m')
+end.
+
+Fixpoint t (n : nat)(h : nat -> nat) :=
+match n with
+| O    => S O
+| S n' => (t n' h) * (h n')
+end.
+
+Fixpoint T (n m : nat)(h : nat -> nat) :=
+match n, m with
+| O, _    => S O
+| S n', _ => (T n' m h) * (h (m + n'))
+end.
+
+Theorem strong_induction : forall (phi : nat -> Prop),
+  (forall k, (forall i, i < k -> (phi i)) -> (phi k)) -> forall n, (phi n).
+Proof.
+  intros phi Hstrind n.
+  assert (H: forall k i, i < k -> phi i).
+    { induction k as [| k' HIk'].
+      - intros i Hi_lt_0.
+        assert (H0_leq_i: 0 <= i).
+          { exact (O_leq_x i). }
+        apply Hi_lt_0 in H0_leq_i as Hbot.
+        contradiction.
+      - intros i Hi_lt_Sk'.
+        destruct (lt_or_eq i k' (n_lt_Sm i k' Hi_lt_Sk')) as [Hi_lt_k' | Hi_eq_k'].
+        + apply (HIk' i) in Hi_lt_k' as Hpi.
+          exact Hpi.
+        + apply (Hstrind k') in HIk' as Hpk'.
+          rewrite -> Hi_eq_k'.
+          exact Hpk'. }
+  apply (Hstrind n) in H as Hpn.
+  exact Hpn.
 Qed.
