@@ -2,6 +2,22 @@
 Definition lem : Prop := forall (P: Prop), P \/ (~ P).
 Definition raa : Prop := forall (P : Prop), (~P -> False) -> P.
 
+Theorem lem_implies_raa : lem -> raa.
+Proof.
+  intros Hlem P HnP_imp_F.
+  destruct (Hlem P) as [HP | HnP].
+  - exact HP.
+  - apply HnP_imp_F in HnP as Hbot.
+    contradiction.
+Qed.
+
+Theorem raa_implies_lem : raa -> lem.
+Proof.
+  intros Hraa P.
+  apply Hraa.
+  intros HnP.
+Abort.
+
 
 (** 1. Proposições de dupla negação **)
 
@@ -14,12 +30,11 @@ Proof.
   apply (p_implies_f Hp).
 Qed.
 
-Theorem doubleneg_elim_with_lem : lem -> forall (p: Prop), ~ ~ p -> p.
+Theorem doubleneg_elim_with_raa : raa -> forall (p: Prop), ~ ~ p -> p.
 Proof.
-  intros Hlem p Hnnp.
-  destruct (Hlem p) as [Hp | Hnp].
-  - assumption.
-  - apply Hnnp in Hnp as Hfalse. contradiction.
+  intros Hraa p HnnP.
+  apply Hraa.
+  exact HnnP.
 Qed.
 
 
@@ -35,15 +50,18 @@ Qed.
 
 (** 3. A lei de Peirce e sua versão "fraca" **)
 
-Theorem lei_de_Peirce_with_lem : lem -> forall (P Q: Prop), ((P -> Q) -> P) -> P.
+Theorem lei_de_Peirce_with_raa : raa -> forall (P Q: Prop), ((P -> Q) -> P) -> P.
 Proof.
-  intros Hlem P Q HP_imp_Q__imp_P. destruct (Hlem P) as [HP | HnP].
-  - assumption.
-  - assert(HP_imp_Q: P -> Q).
-      { intro HP. apply HnP in HP. contradiction. }
-    apply HP_imp_Q__imp_P in HP_imp_Q as HP. assumption.
+  intros Hraa P Q HP_imp_Q__imp_P.
+  apply Hraa.
+  intros HnP.
+  assert(HP_imp_Q: P -> Q).
+    { intro HP. apply HnP in HP as Hbot. contradiction. }
+  apply HP_imp_Q__imp_P in HP_imp_Q as HP.
+  apply HnP in HP as Hbot.
+  exact Hbot.
 Qed.
-      
+
 Theorem lei_de_Peirce_fraca : forall (P Q : Prop), ((P -> Q) -> P) -> ~~P.
 Proof.
   intros P Q HP_imp_Q__imp_P HnP.
@@ -120,38 +138,38 @@ Proof.
   - apply HnQ in HQ as Hfalse. assumption.
 Qed.
 
-
-Theorem interdefinabilidade_e_ou4_with_lem : lem -> forall (P Q : Prop), ~(~P \/ ~Q) -> P /\ Q.
+Theorem interdefinabilidade_e_ou4_with_raa : raa -> forall (P Q : Prop), ~(~P \/ ~Q) -> P /\ Q.
 Proof.
-  intros Hlem P Q Hn_nP_or_nQ. split.
-  - destruct (Hlem P) as [HP | HnP].
-    * assumption.
-    * assert(HnP_or_nQ: ~P \/ ~Q).
-        { left. assumption. }
-      apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
-  - destruct (Hlem Q) as [HQ | HnQ].
-    * assumption.
-    * assert(HnP_or_nQ: ~P \/ ~Q).
-        { right. assumption. }
-      apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
+  intros Hraa P Q Hn_nP_or_nQ. split.
+  - apply Hraa.
+    intros HnP.
+    assert(HnP_or_nQ: ~P \/ ~Q).
+      { left. exact HnP. }
+    apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
+  - apply Hraa.
+    intros HnQ.
+    assert(HnP_or_nQ: ~P \/ ~Q).
+      { right. exact HnQ. }
+    apply Hn_nP_or_nQ in HnP_or_nQ. contradiction.
 Qed.
 
 
 (** 6. As leis de De Morgan **)
 
-Theorem de_morgan1_with_lem : lem -> forall (P Q : Prop), ~(P \/ Q) -> (~P /\ ~Q).
+Theorem de_morgan1 : forall (P Q : Prop), ~(P \/ Q) -> (~P /\ ~Q).
 Proof.
-  intros Hlem P Q Hn_P_or_Q. destruct (Hlem P) as [HP | HnP].
-  - assert(HP_or_Q: P \/ Q).
-      { left. assumption. }
+  intros P Q Hn_P_or_Q.
+  split.
+  - intro HP.
+    assert(HP_or_Q: P \/ Q).
+      { left. exact HP. }
+    apply Hn_P_or_Q in HP_or_Q as Hbot.
     contradiction.
-  - destruct (Hlem Q) as [HQ | HnQ].
-    * assert(HP_or_Q: P \/ Q).
-        { right. assumption. }
-      contradiction.
-    * split.
-      + assumption.
-      + assumption.
+  - intro HQ.
+    assert(HP_or_Q: P \/ Q).
+      { right. exact HQ. }
+    apply Hn_P_or_Q in HP_or_Q as Hbot.
+    contradiction.
 Qed.
 
 Theorem de_morgan2 : forall (P Q : Prop), (~P /\ ~Q) -> ~(P \/ Q).
@@ -162,15 +180,19 @@ Proof.
   - contradiction.
 Qed.
 
-Theorem de_morgan3_with_lem : lem -> forall (P Q : Prop), ~(P /\ Q) -> (~P \/ ~Q).
+Theorem de_morgan3_with_raa : raa -> forall (P Q : Prop), ~(P /\ Q) -> (~P \/ ~Q).
 Proof.
-  intros Hlem P Q Hn_P_and_Q. destruct (Hlem P) as [HP | HnP].
-  - destruct (Hlem Q) as [HQ | HnQ].
-    * assert(HP_or_Q: P /\ Q).
-        { split. assumption. assumption. }
-      contradiction.
-    * right. assumption.
-  - left. assumption.
+  intros Hraa P Q Hn_P_and_Q.
+  apply Hraa.
+  intros Hn_nP_or_nQ.
+  apply (de_morgan1 (~P) (~Q)) in Hn_nP_or_nQ as HnnP_and_nnQ.
+  destruct HnnP_and_nnQ as (HnnP, HnnQ).
+  assert(HP_or_Q: P /\ Q).
+    { split.
+      - exact (doubleneg_elim_with_raa Hraa P HnnP).
+      - exact (doubleneg_elim_with_raa Hraa Q HnnQ). }
+  apply Hn_P_and_Q in HP_or_Q as Hbot.
+  contradiction.
 Qed.
 
 Theorem de_morgan4 : forall (P Q : Prop), (~P \/ ~Q) -> ~(P /\ Q).
@@ -246,7 +268,7 @@ Proof.
   apply Hnpa in Hfx_px as Hfalse. assumption.
 Qed.
 
-Theorem neg_exists1 : forall (A : Type)(phi : A -> Prop), ~(exists ( x: A ), phi x) -> (forall (x : A), ~phi x).
+Theorem neg_exists : forall (A : Type)(phi : A -> Prop), ~(exists ( x: A ), phi x) -> (forall (x : A), ~phi x).
 Proof.
   intros A phi Hnex_px a Hpa.
   assert (Hex_px: exists (x : A), phi x).
@@ -254,7 +276,7 @@ Proof.
   - apply Hnex_px in Hex_px as Hfalse. assumption.
 Qed.
 
-Theorem neg_exists2 : forall (A : Type)(phi : A -> Prop), (forall (x : A), ~phi x) -> ~(exists ( x: A ), phi x).
+Theorem neg_exists_inverse : forall (A : Type)(phi : A -> Prop), (forall (x : A), ~phi x) -> ~(exists ( x: A ), phi x).
 Proof.
   intros A phi Hfx_npx Hex_px. destruct Hex_px as (a, Hpa).
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
