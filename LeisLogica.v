@@ -256,18 +256,6 @@ Qed.
 
 (** 8. As leis de De Morgan para ∃,∀ **)
 
-Theorem neg_forall1 :
-  lem -> forall (A: Type)(a : A)(phi : A -> Prop), ~(forall ( x: A ), phi x) -> (exists (x : A), ~phi x).
-Proof.
-  intros Hlem A a phi Hnfx_px.
-Abort.
-
-Theorem neg_forall2 : forall (A : Type)(phi : A -> Prop), (exists (x : A), ~phi x) -> ~(forall ( x: A ), phi x).
-Proof.
-  intros A phi Hex_npx Hfx_px. destruct Hex_npx as (a, Hnpa).
-  apply Hnpa in Hfx_px as Hfalse. assumption.
-Qed.
-
 Theorem neg_exists : forall (A : Type)(phi : A -> Prop), ~(exists ( x: A ), phi x) -> (forall (x : A), ~phi x).
 Proof.
   intros A phi Hnex_px a Hpa.
@@ -276,10 +264,30 @@ Proof.
   - apply Hnex_px in Hex_px as Hfalse. assumption.
 Qed.
 
-Theorem neg_exists_inverse : forall (A : Type)(phi : A -> Prop), (forall (x : A), ~phi x) -> ~(exists ( x: A ), phi x).
+Theorem neg_exists_inverse : forall (A : Type)(phi : A -> Prop), (forall (x : A), ~phi x) -> ~(exists (x: A), phi x).
 Proof.
   intros A phi Hfx_npx Hex_px. destruct Hex_px as (a, Hpa).
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
+Qed.
+
+Theorem neg_forall :
+  raa -> forall (A: Type)(phi : A -> Prop), ~(forall (x : A), phi x) -> (exists (x : A), ~phi x).
+Proof.
+  intros Hraa A phi Hnfx_px.
+  apply Hraa.
+  intros Hnex_npx.
+  assert (Hfx_px: forall x : A, phi x).
+    { intros x.
+      apply (doubleneg_elim_with_raa Hraa).
+      apply (neg_exists A _ Hnex_npx x). }
+  apply Hnfx_px in Hfx_px as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem neg_forall_inverse : forall (A : Type)(phi : A -> Prop), (exists (x : A), ~phi x) -> ~(forall ( x: A ), phi x).
+Proof.
+  intros A phi Hex_npx Hfx_px. destruct Hex_npx as (a, Hnpa).
+  apply Hnpa in Hfx_px as Hfalse. assumption.
 Qed.
 
 
@@ -292,16 +300,17 @@ Proof.
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
 Qed.
 
-Theorem interdefinabilidade_existe_paratodo2_with_lem : lem -> forall (A : Type)(a : A)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
+Theorem interdefinabilidade_existe_paratodo2_with_raa : raa -> forall (A : Type)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
 Proof.
-  intros Hlem A a phi Hnfx_npx.
-  destruct (Hlem (forall x, phi x)) as [Hfx_px | Hnfx_px].
-  - exists a. exact (Hfx_px a).
-  - destruct (Hlem (exists x, ~(phi x))) as [Hex_npx | Hnex_npx].
-    + admit.
-    +
-  exists a.
-Abort.
+  intros Hraa A phi Hnfx_npx.
+  apply Hraa.
+  intros Hnex_px.
+  assert (Hfx_npx: forall x : A, ~phi x).
+    { intros x.
+      apply (neg_exists A _ Hnex_px x). }
+  apply Hnfx_npx in Hfx_npx as Hbot.
+  exact Hbot.
+Qed.
 
 Theorem interdefinabilidade_existe_paratodo3 : forall (A : Type)(phi : A -> Prop), (forall ( x: A ), phi x) -> ~(exists (x : A), ~phi x).
 Proof.
@@ -390,9 +399,10 @@ Proof.
   apply HnQ in HQ as Hfalse. assumption.
 Qed.
 
-Theorem contrapositiva2_with_lem : lem -> forall (P Q : Prop), (~Q -> ~P) -> (P -> Q).
+Theorem contrapositiva2_with_raa : raa -> forall (P Q : Prop), (~Q -> ~P) -> (P -> Q).
 Proof.
-  intros Hlem P Q HnQ_imp_nP HP. apply (doubleneg_elim_with_lem Hlem Q).
+  intros Hraa P Q HnQ_imp_nP HP.
+  apply Hraa.
   intros HnQ. apply HnQ_imp_nP in HnQ as HnP.
   apply HnP in HP as Hfalse. contradiction.
 Qed.
