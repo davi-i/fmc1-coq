@@ -396,6 +396,14 @@ Proof.
   exact Hbot.
 Qed.
 
+Theorem leq_0_implies_eq_0 : forall (x: nat), x <= 0 -> x = 0.
+Proof.
+  intros x Hx_leq_0.
+  destruct (lt_or_eq x 0 Hx_leq_0) as [Hx_lt_0 | Hx_eq_0].
+  - apply (not_lt_0 x) in Hx_lt_0 as Hbot. contradiction.
+  - exact Hx_eq_0.
+Qed.
+
 Theorem lt_succ : forall (n : nat), n < (S n).
 Proof.
   intros n HSn_leq_n.
@@ -1091,6 +1099,7 @@ match n, m with
 | S n', _ => (T n' m h) * (h (m + n'))
 end.
 
+(* PIF -> PIFF *)
 Theorem strong_induction : forall (phi : nat -> Prop),
   (forall k, (forall i, i < k -> (phi i)) -> (phi k)) -> forall n, (phi n).
 Proof.
@@ -1098,12 +1107,13 @@ Proof.
   assert (H: forall k i, i < k -> phi i).
     { induction k as [| k' HIk'].
       - intros i Hi_lt_0.
-        assert (H0_leq_i: 0 <= i).
-          { exact (O_leq_x i). }
-        apply Hi_lt_0 in H0_leq_i as Hbot.
+        assert (Hbot: False).
+          { apply (not_lt_0 i).
+            exact Hi_lt_0. }
         contradiction.
       - intros i Hi_lt_Sk'.
-        destruct (lt_or_eq i k' (n_lt_Sm i k' Hi_lt_Sk')) as [Hi_lt_k' | Hi_eq_k'].
+        apply (n_lt_Sm i k') in Hi_lt_Sk' as Hi_leq_k'.
+        destruct (lt_or_eq i k' Hi_leq_k') as [Hi_lt_k' | Hi_eq_k'].
         + apply (HIk' i) in Hi_lt_k' as Hpi.
           exact Hpi.
         + apply (Hstrind k') in HIk' as Hpk'.
@@ -1112,3 +1122,74 @@ Proof.
   apply (Hstrind n) in H as Hpn.
   exact Hpn.
 Qed.
+
+Theorem piff_implies_pif : forall (phi : nat -> Prop),
+  ((forall k, (forall i, i < k -> phi i) -> phi k) -> forall n, phi n)
+  -> ((phi 0 /\ forall k, phi k -> phi (S k)) -> forall n, phi n).
+Proof.
+  intros phi Hpiff Hind.
+  destruct Hind as (Hbase, Hstep).
+  apply Hpiff.
+  intros k Hfi_lt_k__pi.
+  destruct k as [| k'].
+  - exact Hbase.
+  - apply Hstep.
+    apply (Hfi_lt_k__pi k').
+    exact (lt_succ k').
+Qed.
+
+Theorem well_ordering : raa -> forall (phi : nat -> Prop),
+  (exists n, phi n) -> exists a, phi a /\ forall b, (phi b -> a <= b).
+Proof.
+  intros Hraa phi Hen_pn.
+  destruct Hen_pn as (n, Hpn).
+  assert (forall u (psi: nat -> Prop), (exists v, (psi v /\ v <= u)) -> (exists m, psi m /\ forall k, (phi k -> m <= k))).
+    { induction u as [| u' HI].
+      - intros psi H.
+        destruct H as (v, H).
+        destruct H as (Hpv, Hv_leq_0).
+        exists v. split.
+        + exact Hpv.
+        + intros k Hpk.
+          apply (leq_0_implies_eq_0 v) in Hv_leq_0 as Hv_eq_0.
+          rewrite -> Hv_eq_0.
+          exact (O_leq_x k).
+      - intros psi H.
+        destruct H as (v, H).
+        destruct H as (Hpv, Hv_leq_u).
+        apply HI.
+        exists v. split.
+        + exact Hpv.
+        + destruct (n_leq_Sm v u' Hv_leq_u) as [Hv_leq_u' | Hv_eq_u'].
+          * exact Hv_leq_u'.
+          * 
+Abort.
+
+Theorem pbo_implies_pif :
+  raa -> (forall (phi : nat -> Prop), (exists n, phi n) -> exists a, phi a /\ forall b, (phi b -> a <= b))
+  -> (forall (phi : nat -> Prop), (phi 0 /\ forall k, (phi k -> phi (S k))) -> forall n, phi n).
+Proof.
+  intros Hraa Hpbo phi Hind.
+  destruct Hind as (Hbase, Hstep).
+  intros n.
+  apply Hraa. intros Hnpn.
+  assert (Hen_npn: exists n, ~phi n).
+    { exists n. exact Hnpn. }
+  destruct (Hpbo _ Hen_npn) as (m, H).
+  destruct H as (Hnpm, Hfb_npb_imp_m_leq_b).
+  destruct m as [| m'].
+  - apply Hnpm in Hbase as Hbot.
+    exact Hbot.
+  - assert (Hnpm': ~phi m').
+      { intros Hpm'.
+        apply (Hstep m') in Hpm' as Hpm.
+        apply Hnpm in Hpm as Hbot.
+        exact Hbot. }
+    apply (Hfb_npb_imp_m_leq_b m') in Hnpm' as Hm_leq_m'.
+    apply (lt_succ m').
+    exact Hm_leq_m'.
+Qed.
+
+
+
+
