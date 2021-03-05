@@ -73,7 +73,7 @@ Qed.
 
 (** 4. Proposições de interdefinabilidade dos ⇒,∨: **)
 
-Theorem interdefinabilidade_implica_ou1_with_lem : lem -> forall (P Q : Prop), (P -> Q) -> (~P \/ Q).
+Theorem implies_or1_with_lem : lem -> forall (P Q : Prop), (P -> Q) -> (~P \/ Q).
 Proof.
   intros Hlem P Q HP_imp_Q.
   destruct (Hlem P) as [Hp | Hnp].
@@ -81,7 +81,7 @@ Proof.
   - left. assumption.
 Qed.
 
-Theorem interdefinabilidade_implica_ou2 : forall (P Q : Prop), (~P \/ Q) -> (P -> Q).
+Theorem implies_or2 : forall (P Q : Prop), (~P \/ Q) -> (P -> Q).
 Proof.
   intros P Q HnP_or_Q HP.
   destruct (HnP_or_Q) as [HnP | HQ].
@@ -89,7 +89,7 @@ Proof.
   - assumption.
 Qed.
 
-Theorem interdefinabilidade_implica_ou3 : forall (P Q : Prop), (P \/ Q) -> (~P -> Q).
+Theorem implies_or3 : forall (P Q : Prop), (P \/ Q) -> (~P -> Q).
 Proof.
   intros P Q HP_or_Q HnP.
   destruct (HP_or_Q) as [HP | HQ].
@@ -97,7 +97,7 @@ Proof.
   - assumption.
 Qed.
 
-Theorem interdefinabilidade_implica_ou4_with_lem : lem -> forall (P Q : Prop), (~P -> Q) -> (P \/ Q).
+Theorem implies_or4_with_lem : lem -> forall (P Q : Prop), (~P -> Q) -> (P \/ Q).
 Proof.
   intros Hlem P Q HnP_imp_Q.
   destruct (Hlem P) as [Hp | Hnp].
@@ -294,13 +294,13 @@ Qed.
 
 (** 9. Proposições de interdefinabilidade dos ∃,∀ **)
 
-Theorem interdefinabilidade_existe_paratodo1 : forall (A : Type)(phi : A -> Prop), (exists ( x: A ), phi x) -> ~(forall (x : A), ~phi x).
+Theorem exists_forall1 : forall (A : Type)(phi : A -> Prop), (exists ( x: A ), phi x) -> ~(forall (x : A), ~phi x).
 Proof.
   intros A phi Hex_px Hfx_npx. destruct Hex_px as (a, Hpa).
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
 Qed.
 
-Theorem interdefinabilidade_existe_paratodo2_with_raa : raa -> forall (A : Type)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
+Theorem exists_forall2_with_raa : raa -> forall (A : Type)(phi : A -> Prop), ~(forall (x : A), ~phi x) -> (exists ( x: A ), phi x).
 Proof.
   intros Hraa A phi Hnfx_npx.
   apply Hraa.
@@ -312,19 +312,19 @@ Proof.
   exact Hbot.
 Qed.
 
-Theorem interdefinabilidade_existe_paratodo3 : forall (A : Type)(phi : A -> Prop), (forall ( x: A ), phi x) -> ~(exists (x : A), ~phi x).
+Theorem exists_forall3 : forall (A : Type)(phi : A -> Prop), (forall ( x: A ), phi x) -> ~(exists (x : A), ~phi x).
 Proof.
   intros A phi Hfx_px Hex_npx. destruct Hex_npx as (a, Hnpa).
   apply Hnpa in Hfx_px as Hfalse. assumption.
 Qed.
 
-Theorem interdefinabilidade_existe_paratodo4_with_lem : lem -> forall (A : Type)(phi : A -> Prop), ~(exists (x : A), ~phi x) -> (forall ( x: A ), phi x).
+Theorem exists_forall4_with_raa : raa -> forall (A : Type)(phi : A -> Prop), ~(exists (x : A), ~phi x) -> (forall ( x: A ), phi x).
 Proof.
-  intros Hlem A phi Hnex_npx a. destruct (Hlem (phi a)) as [Hpa | Hnpa].
-  - assumption.
-  - assert (Hex_npx: exists (x : A), ~phi x).
-    * exists a. assumption.
-    * apply Hnex_npx in Hex_npx as Hfalse. contradiction.
+  intros Hraa A phi Hnex_npx a.
+  apply Hraa. intros Hnpa.
+  assert (Hex_npx: exists (x : A), ~phi x).
+  - exists a. assumption.
+  - apply Hnex_npx in Hex_npx as Hfalse. contradiction.
 Qed.
 
 
