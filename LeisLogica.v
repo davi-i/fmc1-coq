@@ -256,7 +256,7 @@ Qed.
 
 (** 8. As leis de De Morgan para ∃,∀ **)
 
-Theorem neg_exists : forall (A : Type)(phi : A -> Prop), ~(exists ( x: A ), phi x) -> (forall (x : A), ~phi x).
+Theorem neg_exists : forall (A : Type)(phi : A -> Prop), ~(exists (x: A), phi x) -> (forall (x : A), ~phi x).
 Proof.
   intros A phi Hnex_px a Hpa.
   assert (Hex_px: exists (x : A), phi x).
@@ -268,6 +268,15 @@ Theorem neg_exists_inverse : forall (A : Type)(phi : A -> Prop), (forall (x : A)
 Proof.
   intros A phi Hfx_npx Hex_px. destruct Hex_px as (a, Hpa).
   apply (Hfx_npx a) in Hpa as Hfalse. assumption.
+Qed.
+
+Theorem neg_exists2 : forall (A : Type)(phi : A -> Prop)(psi : A -> Prop), ~(exists (x: A), phi x /\ psi x) -> (forall (x : A), phi x -> ~psi x).
+Proof.
+  intros A phi psi Hnex_phx_and_psx a Hpha Hpsa.
+  assert (Hex_phx_and_psx: exists (x : A), phi x /\ psi x).
+    { exists a. split; assumption. }
+  apply Hnex_phx_and_psx in Hex_phx_and_psx as Hbot.
+  exact Hbot.
 Qed.
 
 Theorem neg_forall :

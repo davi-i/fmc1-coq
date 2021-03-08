@@ -334,14 +334,14 @@ Proof.
     rewrite <- Hx_plus_k.
     simpl. reflexivity.
   - left. intros Hy_leq_x.
-    assert (Hx_eq_inverse_y : x = y).
+    assert (Hx_eq_y : x = y).
       { apply (leq_antisymmetry x y).
         split.
         - rewrite <- Hx_plus_k.
           exists (S k').
           reflexivity.
         - exact Hy_leq_x. }
-    rewrite -> Hx_eq_inverse_y in Hx_plus_k.
+    rewrite -> Hx_eq_y in Hx_plus_k.
     apply (x_plus_Sy y k') in Hx_plus_k as Hbot.
     exact Hbot.
 Qed.
@@ -349,10 +349,27 @@ Qed.
 Theorem gt_or_eq : forall (x y : nat), x >= y -> x > y \/ x = y.
 Proof.
   intros x y Hx_geq_y.
-  apply (lt_or_eq y x) in Hx_geq_y as Hy_lt_x__or__y_eq_inverse_x.
-  destruct Hy_lt_x__or__y_eq_inverse_x as [Hy_lt_x | Hy_eq_inverse_x].
+  apply (lt_or_eq y x) in Hx_geq_y as Hy_lt_x__or__y_eq_x.
+  destruct Hy_lt_x__or__y_eq_x as [Hy_lt_x | Hy_eq_x].
   - left. unfold lt in Hy_lt_x. exact Hy_lt_x.
-  - right. rewrite <- Hy_eq_inverse_x. reflexivity.
+  - right. rewrite <- Hy_eq_x. reflexivity.
+Qed.
+
+Theorem leq_or_gt : forall (x y : nat), x <= y \/ x > y.
+Proof.
+  intros x y.
+  destruct (leq_total x y) as [Hx_leq_y | Hy_leq_x].
+  - left. exact Hx_leq_y.
+  - destruct (lt_or_eq y x Hy_leq_x) as [Hy_lt_x | Hy_eq_x].
+    + right. exact Hy_lt_x.
+    + left. rewrite <- Hy_eq_x.
+      exact (leq_reflexivity y).
+Qed.
+
+Theorem geq_or_lt : forall (x y : nat), x >= y \/ x < y.
+Proof.
+  intros x y.
+  exact (leq_or_gt y x).
 Qed.
 
 Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
@@ -404,14 +421,20 @@ Proof.
   - exact Hx_eq_0.
 Qed.
 
+Theorem leq_succ : forall (n : nat), n <= S n.
+Proof.
+  exists 1.
+  exact (succ_eq_sum1 n).
+Qed.
+
 Theorem lt_succ : forall (n : nat), n < (S n).
 Proof.
   intros n HSn_leq_n.
-  rewrite -> succ_eq_sum1 in HSn_leq_n.
   destruct HSn_leq_n as (k, HSn_plus_k).
-  rewrite <- sum_associativity in HSn_plus_k.
-  rewrite -> (sum_commutativity 1 k) in HSn_plus_k.
-  rewrite <- succ_eq_sum1 in HSn_plus_k.
+  rewrite -> sum_commutativity in HSn_plus_k.
+  simpl in HSn_plus_k.
+  rewrite -> sum_commutativity in HSn_plus_k.
+  replace (S(n + k)) with (n + S k) in HSn_plus_k by reflexivity.
   apply (x_plus_Sy n k) in HSn_plus_k as Hbot.
   exact Hbot.
 Qed.
@@ -440,10 +463,9 @@ Proof.
   - exact Hn_leq_m.
   - destruct Hm_leq_n as (k, Hm_plus_k).
     destruct k as [| k'].
-    + exists 0.
+    + simpl in Hm_plus_k.
       rewrite <- Hm_plus_k.
-      simpl.
-      reflexivity.
+      exact (leq_reflexivity m).
     + assert (Hbot : False).
         { apply Hn_lt_Sm.
           exists k'.
@@ -453,6 +475,22 @@ Proof.
           rewrite -> sum_commutativity.
           reflexivity. }
         contradiction.
+Qed.
+
+Theorem lt_implies_succ_leq : forall (n m : nat), n < m -> S n <= m.
+Proof.
+  intros n m Hn_lt_m.
+  destruct (leq_or_gt (S n) m) as [HSn_leq_m | HSn_gt_m].
+  - exact HSn_leq_m.
+  - apply (n_lt_Sm m n) in HSn_gt_m as Hm_leq_n.
+    apply Hn_lt_m in Hm_leq_n as Hbot.
+    contradiction.
+Qed.
+
+Theorem gt_implies_geq_succ : forall (n m : nat), n > m -> n >= S m.
+Proof.
+  intros n m.
+  exact (lt_implies_succ_leq m n).
 Qed.
 
 Theorem sum_eq_0 : forall (a b : nat), a + b = 0 -> a = 0 /\ b = 0.
@@ -1138,32 +1176,53 @@ Proof.
     exact (lt_succ k').
 Qed.
 
-Theorem well_ordering : raa -> forall (phi : nat -> Prop),
-  (exists n, phi n) -> exists a, phi a /\ forall b, (phi b -> a <= b).
+Definition is_min (m : nat)(phi : nat -> Prop) : Prop :=
+  phi m /\ forall k, phi k -> m <= k.
+
+Notation "m = min( phi  )" := (is_min m phi)(at level 50).
+
+Theorem well_ordering : lem -> forall (phi : nat -> Prop),
+  (exists n, phi n) -> exists m, m = min(phi).
 Proof.
-  intros Hraa phi Hen_pn.
-  destruct Hen_pn as (n, Hpn).
-  assert (forall u (psi: nat -> Prop), (exists v, (psi v /\ v <= u)) -> (exists m, psi m /\ forall k, (phi k -> m <= k))).
+  intros Hlem.
+  assert (forall u (psi: nat -> Prop), (exists v, (psi v /\ v <= u)) -> (exists m, m = min(psi))).
     { induction u as [| u' HI].
       - intros psi H.
         destruct H as (v, H).
         destruct H as (Hpv, Hv_leq_0).
-        exists v. split.
+        apply (leq_0_implies_eq_0 v) in Hv_leq_0 as Hv_eq_0.
+        rewrite -> Hv_eq_0 in Hpv.
+        exists 0. split.
         + exact Hpv.
         + intros k Hpk.
-          apply (leq_0_implies_eq_0 v) in Hv_leq_0 as Hv_eq_0.
-          rewrite -> Hv_eq_0.
           exact (O_leq_x k).
       - intros psi H.
         destruct H as (v, H).
         destruct H as (Hpv, Hv_leq_u).
-        apply HI.
-        exists v. split.
-        + exact Hpv.
-        + destruct (n_leq_Sm v u' Hv_leq_u) as [Hv_leq_u' | Hv_eq_u'].
+        destruct (n_leq_Sm v u' Hv_leq_u) as [Hv_leq_u' | Hv_eq_u].
+        + apply HI.
+          exists v. split.
+          * exact Hpv.
           * exact Hv_leq_u'.
-          * 
-Abort.
+        + destruct (Hlem (exists x : nat, psi x /\ x <= u')) as [Hex_px_and_x_leq_u' | Hnex_px_and_x_leq_u'].
+          * apply HI.
+            exact Hex_px_and_x_leq_u'.
+          * exists v. split.
+            -- exact Hpv.
+            -- intros k Hpk.
+               assert (Hfx_px_imp_x_gt_u: forall x, psi x -> x > u').
+                 { apply neg_exists2. exact Hnex_px_and_x_leq_u'. }
+               apply (Hfx_px_imp_x_gt_u k) in Hpk as Hk_gt_u'.
+               apply (gt_implies_geq_succ k u') in Hk_gt_u' as Hk_geq_Su'.
+               rewrite -> Hv_eq_u.
+               exact Hk_geq_Su'. }
+  intros phi Hen_pn.
+  destruct Hen_pn as (n, Hpn).
+  apply (H (S n)).
+  exists n. split.
+  - exact Hpn.
+  - exact (leq_succ n).
+Qed.
 
 Theorem pbo_implies_pif :
   raa -> (forall (phi : nat -> Prop), (exists n, phi n) -> exists a, phi a /\ forall b, (phi b -> a <= b))
@@ -1190,6 +1249,40 @@ Proof.
     exact Hm_leq_m'.
 Qed.
 
+Definition odd (n : nat) : Prop := exists k, n = 2 * k + 1.
 
+Example power_odd : forall n a, odd a -> odd (a^n).
+Proof.
+  induction n as [| n' HI].
+  - intros a Hodd_a.
+    simpl.
+    exists 0.
+    simpl.
+    reflexivity.
+  - intros a Hodd_a.
+    simpl.
+    apply (HI a) in Hodd_a as Hodd_a_exp_n'.
+    destruct Hodd_a as (u, Ha_eq).
+    destruct Hodd_a_exp_n' as (v, Ha_exp_n'_eq).
+    exists (2 * u * v + u + v).
+    repeat rewrite -> distributivity.
+    rewrite -> (mult_commutativity _ u) at 1.
+    repeat rewrite <- (mult_associativity 2 _ _).
+    rewrite -> (mult_associativity _ _ v).
+    rewrite <- (mult_identity1 (2 * u)) at 2.
+    rewrite <- distributivity.
+    rewrite -> (mult_commutativity (2 * u) _).
+    rewrite <- sum_associativity.
+    rewrite <- (mult_identity1 (2 * v + 1)) at 2.
+    rewrite <- distributivity.
+    rewrite <- Ha_exp_n'_eq.
+    rewrite <- Ha_eq.
+    reflexivity.
+Qed.
+
+
+(* Prova 1.1 *)
+
+Fixt A
 
 
