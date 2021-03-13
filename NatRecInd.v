@@ -185,16 +185,16 @@ Qed.
 Definition leq (n m : nat) : Prop := exists (k : nat), n + k = m.
 Notation "n <= m" := (leq n m).
 
-Definition gt (n m : nat) : Prop := ~(n <= m).
-Notation "n > m" := (gt n m).
+Definition lt (n m : nat) : Prop := exists (k : nat), n + S k = m.
+Notation "n < m" := (lt n m).
 
 Definition geq (n m : nat) : Prop := m <= n.
 Notation "n >= m" := (geq n m).
 
-Definition lt (n m : nat) : Prop := m > n.
-Notation "n < m" := (lt n m).
+Definition gt (n m : nat) : Prop := m < n.
+Notation "n > m" := (gt n m).
 
-Theorem n_leq_Sm : forall (n m : nat), n <= (S m) -> (n <= m) \/ (n = (S m)). 
+Theorem n_leq_Sm : forall (n m : nat), n <= (S m) -> (n <= m) \/ (n = (S m)).
 Proof.
   intros n m Hn_leq_Sm.
   destruct Hn_leq_Sm as (k, Hn_plus_k).
@@ -333,17 +333,8 @@ Proof.
   - right.
     rewrite <- Hx_plus_k.
     simpl. reflexivity.
-  - left. intros Hy_leq_x.
-    assert (Hx_eq_y : x = y).
-      { apply (leq_antisymmetry x y).
-        split.
-        - rewrite <- Hx_plus_k.
-          exists (S k').
-          reflexivity.
-        - exact Hy_leq_x. }
-    rewrite -> Hx_eq_y in Hx_plus_k.
-    apply (x_plus_Sy y k') in Hx_plus_k as Hbot.
-    exact Hbot.
+  - left. exists k'.
+    exact Hx_plus_k.
 Qed.
 
 Theorem gt_or_eq : forall (x y : nat), x >= y -> x > y \/ x = y.
@@ -351,7 +342,7 @@ Proof.
   intros x y Hx_geq_y.
   apply (lt_or_eq y x) in Hx_geq_y as Hy_lt_x__or__y_eq_x.
   destruct Hy_lt_x__or__y_eq_x as [Hy_lt_x | Hy_eq_x].
-  - left. unfold lt in Hy_lt_x. exact Hy_lt_x.
+  - left. exact Hy_lt_x.
   - right. rewrite <- Hy_eq_x. reflexivity.
 Qed.
 
@@ -372,6 +363,81 @@ Proof.
   exact (leq_or_gt y x).
 Qed.
 
+Theorem neg_leq : forall (x y : nat), ~(x <= y) -> x > y.
+Proof.
+  intros x y Hn_x_leq_y.
+  destruct (leq_or_gt x y) as [Hx_leq_y | Hx_gt_y].
+  - apply Hn_x_leq_y in Hx_leq_y as Hbot.
+    contradiction.
+  - exact Hx_gt_y.
+Qed.
+
+Theorem neg_geq : forall (x y : nat), ~(x >= y) -> x < y.
+Proof.
+  intros x y.
+  exact (neg_leq y x).
+Qed.
+
+Theorem neg_leq_inverse : forall (x y : nat), x > y -> ~(x <= y).
+Proof.
+  intros x y Hx_gt_y Hx_leq_y.
+  destruct Hx_gt_y as (a, Hy_Sa_eq_x).
+  destruct Hx_leq_y as (b, Hx_b_eq_y).
+  rewrite <- Hx_b_eq_y in Hy_Sa_eq_x.
+  rewrite <- sum_associativity in Hy_Sa_eq_x.
+  replace (b + S a) with (S(b + a)) in Hy_Sa_eq_x by reflexivity.
+  apply x_plus_Sy in Hy_Sa_eq_x as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem neg_geq_inverse : forall (x y : nat),  x < y -> ~(x >= y).
+Proof.
+  intros x y.
+  exact (neg_leq_inverse y x).
+Qed.
+
+Theorem neg_lt : forall (x y : nat), ~(x < y) -> x >= y.
+Proof.
+  intros x y Hn_x_lt_y.
+  destruct (leq_total x y) as [Hx_leq_y | Hy_leq_x].
+  - destruct Hx_leq_y as (k, Hx_plus_k).
+    destruct k as [| k'].
+    + exists 0.
+      rewrite <- Hx_plus_k.
+      simpl.
+      reflexivity.
+    + assert (Hbot : False).
+        { apply Hn_x_lt_y.
+          exists k'.
+          exact Hx_plus_k. }
+      contradiction.
+  - exact Hy_leq_x.
+Qed.
+
+Theorem neg_gt : forall (x y : nat), ~(x > y) -> x <= y.
+Proof.
+  intros x y.
+  exact (neg_lt y x).
+Qed.
+
+Theorem neg_lt_inverse : forall (x y : nat), x >= y -> ~(x < y).
+Proof.
+  intros x y Hx_geq_y Hx_lt_y.
+  destruct Hx_lt_y as (a, Hx_Sa_eq_y).
+  destruct Hx_geq_y as (b, Hy_b_eq_x).
+  rewrite <- Hy_b_eq_x in Hx_Sa_eq_y.
+  rewrite <- sum_associativity in Hx_Sa_eq_y.
+  replace (b + S a) with (S(b + a)) in Hx_Sa_eq_y by reflexivity.
+  apply x_plus_Sy in Hx_Sa_eq_y as Hbot.
+  exact Hbot.
+Qed.
+
+Theorem neg_gt_inverse : forall (x y : nat),  x <= y -> ~(x > y).
+Proof.
+  intros x y.
+  exact (neg_lt_inverse y x).
+Qed.
+
 Theorem succ_eq_sum1 : forall (n : nat), S n = n + 1.
 Proof.
   intros n. simpl. reflexivity.
@@ -380,9 +446,8 @@ Qed.
 Theorem not_reflexivity_lt : forall (n : nat), ~(n < n).
 Proof.
   intros n Hn_lt_n.
-  assert (Hn_leq_n: n <= n).
-    { exact (leq_reflexivity n). }
-  apply Hn_lt_n in Hn_leq_n as Hbot.
+  destruct Hn_lt_n as (k, Hn_plus_Sk).
+  apply (x_plus_Sy n k) in Hn_plus_Sk as Hbot.
   exact Hbot.
 Qed.
 
@@ -393,24 +458,24 @@ Qed.
 
 Theorem lt_transitivity : forall (x y z : nat), x < y /\ y < z -> x < z.
 Proof.
-  intros x y z Hand Hz_leq_x.
+  intros x y z Hand.
   destruct Hand as (Hx_lt_y, Hy_lt_z).
-  destruct (leq_total x y) as [Hx_leq_y | Hy_leq_x].
-  - assert (z <= x /\ x <= y) by (split; assumption).
-    apply (leq_transitivity z x y) in H as Hz_leq_y.
-    apply Hy_lt_z in Hz_leq_y as Hbot.
-    exact Hbot.
-  - apply Hx_lt_y in Hy_leq_x as Hbot.
-    exact Hbot.
+  destruct Hx_lt_y as (a, Hx_sum_Sa).
+  destruct Hy_lt_z as (b, Hy_sum_Sb).
+  exists (S a + b).
+  replace (S(S a + b)) with (S a + S b) by reflexivity.
+  rewrite -> sum_associativity.
+  rewrite -> Hx_sum_Sa.
+  rewrite -> Hy_sum_Sb.
+  reflexivity.
 Qed.
 
 Theorem not_lt_0 : forall (n : nat), ~(n < 0).
 Proof.
   intros n Hn_lt_0.
-  assert (H0_leq_n: 0 <= n).
-    { exact (O_leq_x n). }
-  apply Hn_lt_0 in H0_leq_n as Hbot.
-  exact Hbot.
+  destruct Hn_lt_0 as (k, Hn_plus_Sk).
+  simpl in Hn_plus_Sk.
+  discriminate.
 Qed.
 
 Theorem leq_0_implies_eq_0 : forall (x: nat), x <= 0 -> x = 0.
@@ -429,23 +494,18 @@ Qed.
 
 Theorem lt_succ : forall (n : nat), n < (S n).
 Proof.
-  intros n HSn_leq_n.
-  destruct HSn_leq_n as (k, HSn_plus_k).
-  rewrite -> sum_commutativity in HSn_plus_k.
-  simpl in HSn_plus_k.
-  rewrite -> sum_commutativity in HSn_plus_k.
-  replace (S(n + k)) with (n + S k) in HSn_plus_k by reflexivity.
-  apply (x_plus_Sy n k) in HSn_plus_k as Hbot.
-  exact Hbot.
+  intros n.
+  exists 0.
+  simpl.
+  reflexivity.
 Qed.
 
 Theorem lt_implies_leq : forall (n m : nat), n < m -> n <= m.
 Proof.
   intros n m Hn_lt_m.
-  destruct (leq_total n m) as [Hn_leq_m | Hm_leq_n].
-  - exact Hn_leq_m.
-  - apply Hn_lt_m in Hm_leq_n as Hbot.
-    contradiction.
+  destruct Hn_lt_m as (k, Hn_plus_Sk).
+  exists (S k).
+  exact Hn_plus_Sk.
 Qed.
 
 (* Theorem n_lt_Sm : forall (n m : nat), n <= m -> n < S m.
@@ -459,32 +519,23 @@ Qed. *)
 Theorem n_lt_Sm: forall (n m : nat), n < S m -> n <= m.
 Proof.
   intros n m Hn_lt_Sm.
-  destruct (leq_total n m) as [Hn_leq_m | Hm_leq_n].
-  - exact Hn_leq_m.
-  - destruct Hm_leq_n as (k, Hm_plus_k).
-    destruct k as [| k'].
-    + simpl in Hm_plus_k.
-      rewrite <- Hm_plus_k.
-      exact (leq_reflexivity m).
-    + assert (Hbot : False).
-        { apply Hn_lt_Sm.
-          exists k'.
-          rewrite <- Hm_plus_k.
-          rewrite -> sum_commutativity.
-          simpl.
-          rewrite -> sum_commutativity.
-          reflexivity. }
-        contradiction.
+  destruct Hn_lt_Sm as (k, Hn_plus_Sk).
+  simpl in Hn_plus_Sk.
+  inversion Hn_plus_Sk as [Hn_plus_k].
+  exists k.
+  reflexivity.
 Qed.
 
 Theorem lt_implies_succ_leq : forall (n m : nat), n < m -> S n <= m.
 Proof.
   intros n m Hn_lt_m.
-  destruct (leq_or_gt (S n) m) as [HSn_leq_m | HSn_gt_m].
-  - exact HSn_leq_m.
-  - apply (n_lt_Sm m n) in HSn_gt_m as Hm_leq_n.
-    apply Hn_lt_m in Hm_leq_n as Hbot.
-    contradiction.
+  destruct Hn_lt_m as (k, Hn_plus_Sk).
+  exists k.
+  rewrite <- Hn_plus_Sk.
+  rewrite -> sum_commutativity.
+  simpl.
+  rewrite -> sum_commutativity.
+  reflexivity.
 Qed.
 
 Theorem gt_implies_geq_succ : forall (n m : nat), n > m -> n >= S m.
@@ -581,18 +632,21 @@ Qed.
 
 Theorem sum_lt : forall (a b k : nat), a < b -> k + a < k + b.
 Proof.
-  intros a b k Hlt Hlte.
-  apply sum_leq_inverse in Hlte.
-  apply Hlt in Hlte as Hbot.
-  exact Hbot.
+  intros a b k Ha_lt_b.
+  destruct Ha_lt_b as (c, Ha_Sc).
+  exists c.
+  rewrite <- sum_associativity.
+  rewrite -> Ha_Sc.
+  reflexivity.
 Qed.
 
 Theorem sum_lt_inverse : forall (a b k : nat), k + a < k + b -> a < b.
 Proof.
-  intros a b k Hlt Hlte.
-  apply (sum_leq b a k) in Hlte.
-  apply Hlt in Hlte as Hbot.
-  exact Hbot.
+  intros a b k Ha_lt_b.
+  destruct Ha_lt_b as (c, Hk_a_Sc).
+  exists c.
+  rewrite <- sum_associativity in Hk_a_Sc.
+  exact (sum_eq_inverse _ _ _ Hk_a_Sc).
 Qed.
 
 Theorem sum_gt : forall (a b k : nat), a > b -> k + a > k + b.
@@ -1024,10 +1078,10 @@ Module x4_32.
   Theorem x4_32_iii : forall (n : nat), (psi n).
   Proof.
     induction n as [| n' HI].
-    - unfold psi. simpl.
-      intros H0_geq_1.
-      apply (not_succ_leq_O 0) in H0_geq_1 as Hbot.
-      exact Hbot.
+    - unfold psi. 
+      exists 0.
+      simpl.
+      reflexivity.
     - unfold psi.
       unfold psi in HI.
       rewrite -> (succ_eq_sum1 n') at 2.
@@ -1145,9 +1199,7 @@ Proof.
   assert (H: forall k i, i < k -> phi i).
     { induction k as [| k' HIk'].
       - intros i Hi_lt_0.
-        assert (Hbot: False).
-          { apply (not_lt_0 i).
-            exact Hi_lt_0. }
+        apply (not_lt_0 i) in Hi_lt_0 as Hbot.
         contradiction.
       - intros i Hi_lt_Sk'.
         apply (n_lt_Sm i k') in Hi_lt_Sk' as Hi_leq_k'.
@@ -1210,9 +1262,10 @@ Proof.
           * exists v. split.
             -- exact Hpv.
             -- intros k Hpk.
-               assert (Hfx_px_imp_x_gt_u: forall x, psi x -> x > u').
+               assert (Hfx_px_imp_x_gt_u: forall x, psi x -> ~(x <= u')).
                  { apply neg_exists2. exact Hnex_px_and_x_leq_u'. }
-               apply (Hfx_px_imp_x_gt_u k) in Hpk as Hk_gt_u'.
+               apply (Hfx_px_imp_x_gt_u k) in Hpk as Hn_k_leq_u'.
+               apply (neg_leq k u') in Hn_k_leq_u' as Hk_gt_u'.
                apply (gt_implies_geq_succ k u') in Hk_gt_u' as Hk_geq_Su'.
                rewrite -> Hv_eq_u.
                exact Hk_geq_Su'. }
@@ -1245,8 +1298,8 @@ Proof.
         apply Hnpm in Hpm as Hbot.
         exact Hbot. }
     apply (Hfb_npb_imp_m_leq_b m') in Hnpm' as Hm_leq_m'.
+    apply (neg_lt_inverse m' (S m') Hm_leq_m').
     apply (lt_succ m').
-    exact Hm_leq_m'.
 Qed.
 
 Definition odd (n : nat) : Prop := exists k, n = 2 * k + 1.
@@ -1280,9 +1333,14 @@ Proof.
     reflexivity.
 Qed.
 
-
-(* Prova 1.1 *)
-
-Fixt A
-
+Theorem lt_leq : forall (a b c : nat), a < b /\ b <= c -> a < c.
+Proof.
+  intros a b c Ha_lt_b__and__b_leq_c.
+  destruct Ha_lt_b__and__b_leq_c as (Ha_lt_b, Hb_leq_c).
+  destruct (lt_or_eq b c Hb_leq_c) as [Hb_lt_c | Hb_eq_c].
+  - apply (lt_transitivity a b c).
+    split; assumption.
+  - rewrite <- Hb_eq_c.
+    exact Ha_lt_b.
+Qed.
 
