@@ -94,27 +94,23 @@ Qed.
 
 (** Comutatividade da multiplicação **)
 
-Lemma mult_Sn_m : forall (n m : nat), (S n) * m = n * m + m.
-Proof.
-  intros n m. induction m as [|m' HI].
-  - simpl. reflexivity.
-  - simpl. rewrite -> HI.
-    rewrite <- (sum_associativity (n * m') m' n).
-    rewrite -> (sum_commutativity m' n).
-    rewrite <- (sum_associativity (n * m') n m').
-    reflexivity.
-Qed.
-
 Theorem mult_commutativity : forall (n m : nat), n * m = m * n.
 Proof.
-  intros n m.
   induction n as [| n' HIn'].
-  - simpl. induction m as [| m' HIm'].
-    + simpl. reflexivity.
+  - induction m as [| m' HIm'].
+    + reflexivity.
     + simpl. rewrite -> HIm'. simpl. reflexivity.
-  - simpl. rewrite <- HIn'.
-    rewrite <- (mult_Sn_m n' m).
-    reflexivity.
+  - induction m as [| m' HIm'].
+    + simpl. rewrite <- (HIn' 0).
+      simpl. reflexivity.
+    + simpl.
+      rewrite -> HIm'.
+      rewrite <- (HIn' (S m')).
+      simpl.
+      rewrite <- (HIn' m').
+      repeat rewrite <- sum_associativity.
+      rewrite -> (sum_commutativity m' n').
+      reflexivity.
 Qed.
 
 
@@ -1304,6 +1300,8 @@ Qed.
 
 Definition odd (n : nat) : Prop := exists k, n = 2 * k + 1.
 
+Definition even (n : nat) : Prop := (exists k, n = 2 * k).
+
 Example power_odd : forall n a, odd a -> odd (a^n).
 Proof.
   induction n as [| n' HI].
@@ -1343,4 +1341,107 @@ Proof.
   - rewrite <- Hb_eq_c.
     exact Ha_lt_b.
 Qed.
+
+Theorem problem1_2 : forall (x y : nat), x < y \/ x = y -> x <= y.
+Proof.
+  intros x y Hx_lt_y__or__x_eq_y.
+  destruct Hx_lt_y__or__x_eq_y as [Hx_lt_y | Hx_eq_y].
+  - destruct Hx_lt_y as (k, Hx_k_eq_y).
+    exists (S k).
+    exact Hx_k_eq_y.
+  - exists 0.
+    simpl.
+    exact Hx_eq_y.
+Qed.
+
+Theorem problem1_4 : forall (x y : nat), x <= y /\ x <> y -> x < y.
+Proof.
+  intros x y Hx_leq_y__and__x_neq_y.
+  destruct Hx_leq_y__and__x_neq_y as (Hx_leq_y, Hx_neq_y).
+  destruct Hx_leq_y as (k, Hx_k_eq_y).
+  destruct k as [| k'].
+  - simpl in Hx_k_eq_y.
+    apply Hx_neq_y in Hx_k_eq_y as Hbot.
+    contradiction.
+  - exists k'.
+    exact Hx_k_eq_y.
+Qed.
+
+Theorem alt_distributivity : forall (a x y : nat), x * a + y * a = a * (x + y).
+Proof.
+  induction a as [| a' HI].
+  - intros x y.
+    rewrite -> (mult_commutativity 0).
+    simpl.
+    reflexivity.
+  - intros x y.
+    rewrite -> (mult_commutativity (S a')).
+    simpl.
+    rewrite -> sum_associativity.
+    rewrite <- (sum_associativity _ x _).
+    rewrite -> (sum_commutativity x _).
+    rewrite -> sum_associativity.
+    rewrite -> (HI x y).
+    rewrite <- sum_associativity.
+    rewrite -> mult_commutativity.
+    reflexivity.
+Qed.
+
+Theorem problem2_1 : forall (a x y : nat), x <= y -> x^a <= y^a.
+Proof.
+  induction a as [| a' HI].
+  - intros a y Hx_leq_y.
+    exists 0.
+    simpl.
+    reflexivity.
+  - intros x y Hx_leq_y.
+    destruct (HI x y Hx_leq_y) as (u, Hx_exp_a'_u_eq_y_exp_a').
+    destruct Hx_leq_y as (v, Hx_v_eq_y).
+    exists (u * x + v * y^a').
+    rewrite -> sum_associativity.
+    simpl.
+    rewrite -> alt_distributivity.
+    rewrite -> Hx_exp_a'_u_eq_y_exp_a'.
+    rewrite -> alt_distributivity.
+    rewrite -> Hx_v_eq_y.
+    reflexivity.
+Qed.
+
+Theorem problem2_4 : exists (b x y : nat), x < y /\ ~(b^x < b^y).
+Proof.
+  exists 0. exists 0. exists 1.
+  split.
+  - exists 0.
+    rewrite -> sum_commutativity.
+    simpl. reflexivity.
+  - simpl. intros H1_lt_0.
+    destruct H1_lt_0 as (k, H1_Sk_eq_0).
+    simpl in H1_Sk_eq_0.
+    discriminate.
+Qed.
+
+Theorem problem3 : forall n, even n \/ odd n.
+Proof.
+  induction n as [| k HI].
+  - left.
+    exists 0.
+    simpl. reflexivity.
+  - destruct HI as [Hek | Hok].
+    + right.
+      destruct Hek as (a, Hk_eq_2a).
+      exists a.
+      rewrite <- Hk_eq_2a.
+      simpl.
+      reflexivity.
+    + left.
+      destruct Hok as (b, Hk_eq_2b_1).
+      exists (b + 1).
+      rewrite -> Hk_eq_2b_1.
+      simpl.
+      reflexivity.
+Qed.
+
+
+
+
 
