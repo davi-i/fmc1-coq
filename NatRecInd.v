@@ -1441,6 +1441,40 @@ Proof.
       reflexivity.
 Qed.
 
+Inductive bin : Type :=
+  | B0
+  | B1
+  | BB0 (B : bin)
+  | BB1 (B : bin).
+
+Fixpoint incr (b : bin) : bin :=
+match b with
+| B0     => B1
+| B1     => (BB0 B1)
+| BB0 b' => (BB1 b')
+| BB1 b' => (BB0 (incr b'))
+end.
+
+Fixpoint bin_to_nat (b : bin) : nat :=
+match b with
+| B0     => 0
+| B1     => 1
+| BB0 b' => 2 * (bin_to_nat b')
+| BB1 b' => 2 * (bin_to_nat b') + 1
+end.
+
+Theorem incr_right :
+  forall (b : bin), (bin_to_nat (incr b)) = (bin_to_nat b) + 1.
+Proof.
+  induction b as [ | | b' HI | b' HI].
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl.
+    rewrite -> HI.
+    simpl.
+    reflexivity.
+Qed.
 
 
 
