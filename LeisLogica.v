@@ -11,13 +11,6 @@ Proof.
     contradiction.
 Qed.
 
-Theorem raa_implies_lem : raa -> lem.
-Proof.
-  intros Hraa P.
-  apply Hraa.
-  intros HnP.
-Abort.
-
 
 (** 1. Proposições de dupla negação **)
 

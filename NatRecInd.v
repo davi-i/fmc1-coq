@@ -1,6 +1,6 @@
 Require Import Setoid.
 
-From LF Require Export LeisLogica.
+From FMC Require Export LeisLogica.
 
 Fixpoint sum (n m : nat) : nat :=
   match m with
@@ -693,51 +693,15 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem exp_eq_inverse : forall (a b k : nat), a^(S k) = b^(S k) -> a = b.
-Proof.
-  intro a. induction b as [| b'].
-  - intros k Ha_exp_Sk.
-    replace (0 ^ S k) with 0 in Ha_exp_Sk by reflexivity.
-    apply exp_eq_0 in Ha_exp_Sk as Ha_eq_0.
-    exact Ha_eq_0.
-  - intros k Ha_exp_Sk.
-    destruct a as [| a'].
-    + replace (0 ^ S k) with 0 in Ha_exp_Sk by reflexivity.
-      symmetry in Ha_exp_Sk.
-      apply exp_eq_0 in Ha_exp_Sk as HSb'_eq_0.
-      symmetry.
-      exact HSb'_eq_0.
-    + destruct k as [| k'].
-      * repeat rewrite -> exp_identity in Ha_exp_Sk.
-        exact Ha_exp_Sk.
-      * 
-    simpl in Ha_exp_Sk.
-Abort.
-
 (** Somátório e produtório **)
 
-Fixpoint leq_bool (n m : nat) : bool :=
-match n, m with
-| O, _       => true
-| S _, O     => false
-| S n', S m' => (leq_bool n' m')
+Fixpoint summation (n : nat) (f : nat -> nat) : nat :=
+match n with
+| O    => O
+| S n' => (f n) + (summation n' f)
 end.
 
-Notation "n <=? m" := (leq_bool n m) (at level 50).
-
-Fixpoint summation (n : nat) (m : nat) (f : nat -> nat) : nat :=
-match n, m with
-| O,  O    => f (O)
-| O,  S m' => O
-| S n', _  => if (m <=? n)
-              then (f n) + (summation n' m f)
-              else 0
-end.
-
-Notation "∑( m 'to' n )[ i |-> f  ]" := (summation n m (fun i : nat => f)).
-Notation "∑( n )[ i |-> f  ]" := (summation n 1 (fun i : nat => f)).
-
-Compute ∑(0 to 3)[a |-> a^2 + 1].
+Notation "∑( n )[ i => f  ]" := (summation n (fun i : nat => f)).
 
 Theorem square_of_sum : forall (a b : nat), (a + b)^2 = a^2 + 2 * (a * b) + b^2.
 Proof.
@@ -794,11 +758,11 @@ Proof.
 Qed.
 
 Example x4_26 :
-  forall (n : nat), (∑(n)[i |-> 4 * i^3]) = n^2 * (n + 1)^2.
+  forall (n : nat), (∑(n)[i => 4 * i^3]) = n^2 * (n + 1)^2.
 Proof.
   intros n. induction n as [| n' HI].
   - simpl. reflexivity.
-  - replace (∑(_)[i |-> _]) with (4 * S n'^3 + ∑(n')[i |-> 4 * i^3]) by reflexivity.
+  - replace (∑(_)[i => _]) with (4 * S n'^3 + ∑(n')[i => 4 * i^3]) by reflexivity.
     rewrite -> HI.
     replace (n' + 1) with (S n') by reflexivity.
     rewrite -> mult_commutativity.
@@ -822,23 +786,23 @@ Proof.
 Qed.
 
 Theorem distributivity_summation :
-  forall (n m : nat) (f : nat -> nat), ∑(n)[i |-> m * (f i)] = m * ∑(n)[i |-> (f i)].
+  forall (n m : nat) (f : nat -> nat), ∑(n)[i => m * (f i)] = m * ∑(n)[i => (f i)].
 Proof.
   intros n. induction n as [| n' HI].
   - intros m f. simpl. reflexivity.
   - intros m f.
-    replace (∑(_)[i |-> _]) with (m * (f (S n')) + ∑(n')[i |-> m * f i]) by reflexivity.
-    replace (∑(S n')[i |-> _]) with ((f (S n')) + ∑(n')[i |-> f i]) by reflexivity.
+    replace (∑(_)[i => _]) with (m * (f (S n')) + ∑(n')[i => m * f i]) by reflexivity.
+    replace (∑(S n')[i => _]) with ((f (S n')) + ∑(n')[i => f i]) by reflexivity.
     rewrite -> (HI m f).
     rewrite -> distributivity.
     reflexivity.
 Qed.
 
-Example x4_29 :  forall (n : nat), 6 * ∑(n)[i |-> i^2] = 2 * n^3 + 3 * n^2 + n.
+Example x4_29 :  forall (n : nat), 6 * ∑(n)[i => i^2] = 2 * n^3 + 3 * n^2 + n.
 Proof.
   induction n as [| n' HI].
   - simpl. reflexivity.
-  - replace (∑(_)[i |-> _]) with ((S n' ^ 2) + ∑(n')[i |-> i^2]) by reflexivity.
+  - replace (∑(_)[i => _]) with ((S n' ^ 2) + ∑(n')[i => i^2]) by reflexivity.
     rewrite -> distributivity.
     rewrite -> HI.
     rewrite -> (succ_eq_sum1 n') at 1.
@@ -889,17 +853,6 @@ Proof.
     rewrite <- succ_eq_sum1.
     reflexivity.
 Qed.
-
-Example x4_30 : forall (n : nat), ∑(n)[i |-> i^3] = (∑(n)[i |-> i])^2.
-Proof.
-  induction n as [| n' HI].
-  - simpl. reflexivity.
-  - (* unfold summation. fold summation.
-    rewrite -> HI.
-    rewrite -> square_of_sum.
-    replace (S n' ^ 2 + 2 * (S n' * _)) with (S n' ^ 3).
-      { reflexivity. } *)
-Abort.
 
 Theorem indution_starting_in :
   forall (b : nat) (phi : nat -> Prop),
@@ -1016,14 +969,14 @@ Proof.
 Qed.
 
 Module x4_32.
-  Definition phi (n : nat) := 8 * ∑(n)[i |-> i] = (2 * n + 1)^2.
+  Definition phi (n : nat) := 8 * ∑(n)[i => i] = (2 * n + 1)^2.
 
   Theorem x4_32i : forall (n : nat), (phi n) -> (phi (S n)).
   Proof.
     intros n.
     unfold phi.
     intros Hpn.
-    replace (∑(_)[i |-> _]) with (S n + ∑(n)[i |-> i]) by reflexivity.
+    replace (∑(_)[i => _]) with (S n + ∑(n)[i => i]) by reflexivity.
     rewrite -> distributivity.
     rewrite -> Hpn.
     replace (2 * S n + 1) with (2 * n + 1 + 2) by reflexivity.
@@ -1048,7 +1001,7 @@ Module x4_32.
     reflexivity.
   Qed.
 
-  Definition phi2 (n : nat) := ∑(n)[i |-> 8 * i] = 4 * n * (n + 1).
+  Definition phi2 (n : nat) := ∑(n)[i => 8 * i] = 4 * n * (n + 1).
 
   Theorem x4_32_alt : forall (n : nat), (phi2 n).
   Proof.
@@ -1056,7 +1009,7 @@ Module x4_32.
     - unfold phi2. simpl. reflexivity.
     - unfold phi2.
       unfold phi2 in HI.
-    replace (∑(_)[i |-> _]) with (8 * S n' + ∑(n')[i |-> 8 * i]) by reflexivity.
+    replace (∑(_)[i => _]) with (8 * S n' + ∑(n')[i => 8 * i]) by reflexivity.
       rewrite -> HI.
       rewrite <- succ_eq_sum1.
       replace 8 with (4 * 2) by reflexivity.
@@ -1069,7 +1022,7 @@ Module x4_32.
       reflexivity.
   Qed.
 
-  Definition psi (n : nat) := 8 * ∑(n)[i |-> i] < (2 * n + 1)^2.
+  Definition psi (n : nat) := 8 * ∑(n)[i => i] < (2 * n + 1)^2.
 
   Theorem x4_32_iii : forall (n : nat), (psi n).
   Proof.
@@ -1108,7 +1061,7 @@ Module x4_32.
       rewrite <- distributivity.
       rewrite <- (succ_eq_sum1 n').
       rewrite -> (sum_commutativity _ (8 * _)).
-      replace (∑(_)[i |-> _]) with (S n' + ∑(n')[i |-> i]) by reflexivity.
+      replace (∑(_)[i => _]) with (S n' + ∑(n')[i => i]) by reflexivity.
       rewrite -> distributivity.
       apply sum_lt.
       exact HI.
@@ -1124,26 +1077,11 @@ end.
 
 Notation "F( n  )" := (fibonacci n).
 
-Example x4_33 : forall (n : nat), ∑(0 to n)[i |-> F(i)] + 1 = F(n + 2).
+Example x4_34 : forall (n : nat), ∑(n)[i => (F(i))^2] = F(n) * F(n + 1).
 Proof.
   induction n as [| n' HI].
   - simpl. reflexivity.
-  - replace (∑(_ to _)[i |-> _]) with (F(S n') + ∑(0 to n')[i |-> F(i)]) by reflexivity.
-    rewrite <- sum_associativity.
-    rewrite -> HI.
-    replace (n' + 2) with (S(S n')) by reflexivity.
-    rewrite -> sum_commutativity.
-    replace (F(_) + F(_)) with (F(S(S(S n')))) by reflexivity.
-    replace (S n' + 2) with (S(S(S n'))) by reflexivity.
-    reflexivity.
-Qed.
-
-
-Example x4_34 : forall (n : nat), ∑(n)[i |-> (F(i))^2] = F(n) * F(n + 1).
-Proof.
-  induction n as [| n' HI].
-  - simpl. reflexivity.
-  - replace (∑(_)[_ |-> _]) with (F(S n')^2 + ∑(n')[i |-> F(i)^2]) by reflexivity.
+  - replace (∑(_)[_ => _]) with (F(S n')^2 + ∑(n')[i => F(i)^2]) by reflexivity.
     rewrite -> HI.
     repeat rewrite <- succ_eq_sum1.
     unfold exp.
@@ -1153,19 +1091,6 @@ Proof.
     replace (F(S n') + F(n')) with (F(S(S n'))) by reflexivity.
     reflexivity.
 Qed.
-
-
-Fixpoint product (n m : nat)(f : nat -> nat) : nat :=
-match n, m with
-| O, O    => f(O)
-| O, S _  => S O
-| S n', _ => if (m <=? n)
-             then (f n) * (product n' m f)
-             else (S O)
-end.
-
-Notation "∏( m 'to' n )[ i |-> f ]" := (product n m (fun i : nat => f)).
-Notation "∏( n )[ i |-> f ]" := (product n 1 (fun i : nat => f)).
 
 (** Intervalo de problemas **)
 
@@ -1439,41 +1364,6 @@ Proof.
       rewrite -> Hk_eq_2b_1.
       simpl.
       reflexivity.
-Qed.
-
-Inductive bin : Type :=
-  | B0
-  | B1
-  | BB0 (B : bin)
-  | BB1 (B : bin).
-
-Fixpoint incr (b : bin) : bin :=
-match b with
-| B0     => B1
-| B1     => (BB0 B1)
-| BB0 b' => (BB1 b')
-| BB1 b' => (BB0 (incr b'))
-end.
-
-Fixpoint bin_to_nat (b : bin) : nat :=
-match b with
-| B0     => 0
-| B1     => 1
-| BB0 b' => 2 * (bin_to_nat b')
-| BB1 b' => 2 * (bin_to_nat b') + 1
-end.
-
-Theorem incr_right :
-  forall (b : bin), (bin_to_nat (incr b)) = (bin_to_nat b) + 1.
-Proof.
-  induction b as [ | | b' HI | b' HI].
-  - simpl. reflexivity.
-  - simpl. reflexivity.
-  - simpl. reflexivity.
-  - simpl.
-    rewrite -> HI.
-    simpl.
-    reflexivity.
 Qed.
 
 
